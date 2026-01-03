@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#000080"/>
+  
+  <!-- Cube outline -->
+  <g transform="translate(56, 56)">
+    <!-- Top face (White) -->
+    <polygon points="200,50 350,130 200,210 50,130" fill="#FFFFFF" stroke="#333" stroke-width="3"/>
+    
+    <!-- Left face (Orange) -->
+    <polygon points="50,130 200,210 200,360 50,280" fill="#FF6B00" stroke="#333" stroke-width="3"/>
+    
+    <!-- Right face (Green) -->
+    <polygon points="200,210 350,130 350,280 200,360" fill="#00AA00" stroke="#333" stroke-width="3"/>
+    
+    <!-- Grid lines on top face -->
+    <line x1="100" y1="90" x2="250" y2="170" stroke="#333" stroke-width="2"/>
+    <line x1="150" y1="130" x2="300" y2="50" stroke="#333" stroke-width="2"/>
+    <line x1="125" y1="90" x2="275" y2="170" stroke="#333" stroke-width="2"/>
+    <line x1="175" y1="90" x2="325" y2="170" stroke="#333" stroke-width="2"/>
+    
+    <!-- Grid lines on left face -->
+    <line x1="50" y1="180" x2="200" y2="260" stroke="#333" stroke-width="2"/>
+    <line x1="50" y1="230" x2="200" y2="310" stroke="#333" stroke-width="2"/>
+    <line x1="100" y1="155" x2="100" y2="305" stroke="#333" stroke-width="2"/>
+    <line x1="150" y1="180" x2="150" y2="330" stroke="#333" stroke-width="2"/>
+    
+    <!-- Grid lines on right face -->
+    <line x1="200" y1="260" x2="350" y2="180" stroke="#333" stroke-width="2"/>
+    <line x1="200" y1="310" x2="350" y2="230" stroke="#333" stroke-width="2"/>
+    <line x1="250" y1="180" x2="250" y2="330" stroke="#333" stroke-width="2"/>
+    <line x1="300" y1="155" x2="300" y2="305" stroke="#333" stroke-width="2"/>
+  </g>
+  
+  <!-- RubikSight text -->
+  <text x="256" y="480" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">RubikSight</text>
+</svg>
