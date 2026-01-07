@@ -96,12 +96,20 @@ export default function StatsView({ onBack, userName }: StatsViewProps) {
       <div className="w-full space-y-4">
         <div className="retro-window">
           <div className="retro-title-bar">
-            <span>📊 LOADING STATS...</span>
-            <button onClick={onBack} className="retro-title-btn">←</button>
+            <span className="icon-text">
+              <span className="icon-md">📊</span>
+              <span>LOADING STATS...</span>
+            </span>
+            <button onClick={onBack} className="retro-title-btn focus-ring" aria-label="Go back">←</button>
           </div>
           <div className="p-8 bg-gray-300 text-center">
-            <div className="text-6xl mb-4 animate-pulse">📈</div>
+            <div className="text-6xl mb-4">
+              <span className="inline-block animate-pulse">📈</span>
+            </div>
             <div className="text-black text-xl font-bold">Loading your statistics...</div>
+            <div className="mt-4 w-48 mx-auto">
+              <div className="skeleton h-4 rounded"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -113,14 +121,20 @@ export default function StatsView({ onBack, userName }: StatsViewProps) {
       <div className="w-full space-y-4">
         <div className="retro-window">
           <div className="retro-title-bar bg-red-600">
-            <span>❌ ERROR</span>
-            <button onClick={onBack} className="retro-title-btn">←</button>
+            <span className="icon-text">
+              <span className="icon-md">❌</span>
+              <span>ERROR</span>
+            </span>
+            <button onClick={onBack} className="retro-title-btn focus-ring" aria-label="Go back">←</button>
           </div>
           <div className="p-6 bg-gray-300 text-center">
             <div className="text-5xl mb-4">⚠️</div>
             <div className="text-black text-xl font-bold mb-4">{error}</div>
-            <button onClick={loadData} className="retro-btn">
-              🔄 Try Again
+            <button onClick={loadData} className="retro-btn focus-ring">
+              <span className="icon-text">
+                <span>🔄</span>
+                <span>Try Again</span>
+              </span>
             </button>
           </div>
         </div>
@@ -129,22 +143,23 @@ export default function StatsView({ onBack, userName }: StatsViewProps) {
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full max-w-full space-y-4">
       {/* Header */}
-      <div className="retro-window">
+      <div className="retro-window w-full">
         <div className="retro-title-bar">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">📊</span>
-            <span>YOUR STATISTICS</span>
+          <div className="icon-text">
+            <span className="icon-lg">📊</span>
+            <span className="font-bold">YOUR STATISTICS</span>
           </div>
-          <button onClick={onBack} className="retro-title-btn">←</button>
+          <button onClick={onBack} className="retro-title-btn focus-ring" aria-label="Go back">←</button>
         </div>
-        <div className="p-4 bg-gray-300">
+        <div className="p-3 sm:p-4 bg-gray-300">
           <div className="text-center mb-4">
-            <div className="text-2xl font-bold text-black">
-              Welcome back, {userName || 'Cuber'}! 👋
+            <div className="text-xl sm:text-2xl font-bold text-black icon-text justify-center">
+              <span>👋</span>
+              <span>Welcome back, {userName || 'Cuber'}!</span>
             </div>
-            <div className="text-gray-700 text-sm">
+            <div className="text-gray-700 text-xs sm:text-sm instruction-text mt-1">
               Here's your solving journey so far
             </div>
           </div>
@@ -152,34 +167,37 @@ export default function StatsView({ onBack, userName }: StatsViewProps) {
       </div>
 
       {/* Stats Overview */}
-      <div className="retro-window">
+      <div className="retro-window w-full">
         <div className="retro-title-bar">
-          <span>🏆 OVERVIEW</span>
+          <span className="icon-text">
+            <span className="icon-md">🏆</span>
+            <span>OVERVIEW</span>
+          </span>
         </div>
-        <div className="p-4 bg-gray-300">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-3 sm:p-4 bg-gray-300">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {/* Total Solves */}
-            <div className="retro-panel p-4 text-center bg-blue-50">
-              <div className="text-4xl font-bold text-blue-600">
+            <div className="retro-panel p-3 sm:p-4 text-center bg-blue-50 soft-shadow transition-smooth hover:scale-102">
+              <div className="text-2xl sm:text-4xl font-bold text-blue-600">
                 {stats?.totalSolves || 0}
               </div>
-              <div className="text-black text-sm font-medium mt-1">
+              <div className="text-black text-xs sm:text-sm font-medium mt-1">
                 Total Solves
               </div>
             </div>
             
             {/* Average Moves */}
-            <div className="retro-panel p-4 text-center bg-green-50">
-              <div className="text-4xl font-bold text-green-600">
+            <div className="retro-panel p-3 sm:p-4 text-center bg-green-50 soft-shadow transition-smooth hover:scale-102">
+              <div className="text-2xl sm:text-4xl font-bold text-green-600">
                 {stats?.avgMoves ? Math.round(stats.avgMoves) : 0}
               </div>
-              <div className="text-black text-sm font-medium mt-1">
+              <div className="text-black text-xs sm:text-sm font-medium mt-1">
                 Avg Moves
               </div>
             </div>
             
             {/* Best (Min) Moves */}
-            <div className="retro-panel p-4 text-center bg-yellow-50">
+            <div className="retro-panel p-3 sm:p-4 text-center bg-yellow-50 soft-shadow transition-smooth hover:scale-102">
               <div className="text-4xl font-bold text-yellow-600">
                 {stats?.minMoves || '-'}
               </div>
@@ -189,7 +207,7 @@ export default function StatsView({ onBack, userName }: StatsViewProps) {
             </div>
             
             {/* Fastest Solve */}
-            <div className="retro-panel p-4 text-center bg-purple-50">
+            <div className="retro-panel p-4 text-center bg-purple-50 soft-shadow transition-smooth hover:scale-102">
               <div className="text-4xl font-bold text-purple-600">
                 {formatTime(stats?.fastestSolve || null)}
               </div>

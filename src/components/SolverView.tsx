@@ -1,10 +1,22 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import type { CubeState, Move, FaceName } from '../types/cube';
 import Cube3DViewer from './Cube3D';
 import { solveCube, applyMove, isSolved } from '../utils/solver';
 import CubeValidator from '../utils/cubeValidator';
 import { saveSolve, isAuthenticated } from '../services/auth';
 import { ThreeJSErrorBoundary } from './ErrorBoundary';
+
+const CubeNetUnfolding = lazy(() => import('./CubeNetUnfolding'));
+
+// Custom hook for tooltip
+const Tooltip = ({ children, text }: { children: React.ReactNode; text: string }) => (
+  <div className="tooltip-wrapper group relative inline-flex">
+    {children}
+    <span className="tooltip-content">
+      {text}
+    </span>
+  </div>
+);
 
 interface SolverViewProps {
   cubeState: CubeState;
@@ -34,6 +46,29 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
   const [solveStartTime, setSolveStartTime] = useState<number | null>(null);
   const [solveSaved, setSolveSaved] = useState(false);
   const playIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const allTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const isPlayingRef = useRef(false);
+  const isPausedRef = useRef(false);
+
+  // Helper to create tracked timeouts that can all be cleared on stop
+  const createTrackedTimeout = (callback: () => void, delay: number) => {
+    const timeoutId = setTimeout(() => {
+      allTimeoutsRef.current.delete(timeoutId);
+      callback();
+    }, delay);
+    allTimeoutsRef.current.add(timeoutId);
+    return timeoutId;
+  };
+
+  // Helper to clear all tracked timeouts
+  const clearAllTimeouts = () => {
+    allTimeoutsRef.current.forEach(id => clearTimeout(id));
+    allTimeoutsRef.current.clear();
+    if (playIntervalRef.current) {
+      clearTimeout(playIntervalRef.current);
+      playIntervalRef.current = null;
+    }
+  };
 
   // Parse validation errors from string format to structured format
   const parseValidationErrors = (errors: string[]): ValidationError[] => {
@@ -153,16 +188,17 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
   }, [currentStep]);
 
   const handleReset = useCallback(() => {
+    // Clear all timeouts first
+    clearAllTimeouts();
+    
     setCurrentStep(0);
     setCompletedSteps(new Set());
     setIsAnimating(false);
     setIsPlaying(false);
     setIsPaused(false);
+    isPlayingRef.current = false;
+    isPausedRef.current = false;
     setSolveStartTime(Date.now()); // Reset timer
-    if (playIntervalRef.current) {
-      clearTimeout(playIntervalRef.current);
-      playIntervalRef.current = null;
-    }
   }, []);
 
   // Start timing when mode is selected
@@ -202,12 +238,10 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
     saveSolveToHistory();
   }, [currentStep, solution, initialCubeState, solveStartTime, solveSaved]);
 
-  // Cleanup interval on unmount
+  // Cleanup all timeouts on unmount
   useEffect(() => {
     return () => {
-      if (playIntervalRef.current) {
-        clearTimeout(playIntervalRef.current);
-      }
+      clearAllTimeouts();
     };
   }, []);
 
@@ -215,6 +249,7 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
     if (isPlaying && !isPaused) {
       // Pause playback
       setIsPaused(true);
+      isPausedRef.current = true;
       if (playIntervalRef.current) {
         clearTimeout(playIntervalRef.current);
         playIntervalRef.current = null;
@@ -225,17 +260,26 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
     if (isPaused) {
       // Resume playback
       setIsPaused(false);
+      isPausedRef.current = false;
     } else {
       // Start fresh playback
       handleReset();
       setIsPlaying(true);
+      isPlayingRef.current = true;
+      isPausedRef.current = false;
     }
 
-    // Auto-play all steps
+    // Auto-play all steps - use refs to check current state
     const playNext = (step: number) => {
+      // Check refs for current state (not stale closure values)
+      if (!isPlayingRef.current || isPausedRef.current) {
+        return;
+      }
       if (step >= solution.length) {
         setIsPlaying(false);
         setIsPaused(false);
+        isPlayingRef.current = false;
+        isPausedRef.current = false;
         return;
       }
       setCurrentStep(step);
@@ -244,11 +288,17 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
       const animationDuration = 400 / animationSpeed;
       const pauseBetweenMoves = 200 / animationSpeed;
       
-      playIntervalRef.current = setTimeout(() => {
+      playIntervalRef.current = createTrackedTimeout(() => {
+        // Check again if we should continue
+        if (!isPlayingRef.current || isPausedRef.current) {
+          setIsAnimating(false);
+          return;
+        }
         setCompletedSteps(prev => new Set([...prev, step]));
         setIsAnimating(false);
-        playIntervalRef.current = setTimeout(() => {
-          if (!isPaused) {
+        playIntervalRef.current = createTrackedTimeout(() => {
+          // Use ref to check current pause state
+          if (!isPausedRef.current && isPlayingRef.current) {
             playNext(step + 1);
           }
         }, pauseBetweenMoves);
@@ -256,16 +306,32 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
     };
     
     const startStep = isPaused ? currentStep : 0;
-    setTimeout(() => playNext(startStep), 100);
+    createTrackedTimeout(() => playNext(startStep), 100);
   }, [solution.length, handleReset, animationSpeed, isPlaying, isPaused, currentStep]);
 
   const handlePause = useCallback(() => {
+    // Set refs immediately so the recursive playNext sees the change
+    isPausedRef.current = true;
+    isPlayingRef.current = false;
     setIsPaused(true);
     setIsPlaying(false);
-    if (playIntervalRef.current) {
-      clearTimeout(playIntervalRef.current);
-      playIntervalRef.current = null;
-    }
+    setIsAnimating(false);
+    clearAllTimeouts();
+  }, []);
+
+  // Stop playback completely - different from pause (fully resets playback state)
+  const handleStop = useCallback(() => {
+    // Clear ALL timeouts immediately - this is critical for instant stop
+    clearAllTimeouts();
+    
+    // Reset all refs immediately
+    isPlayingRef.current = false;
+    isPausedRef.current = false;
+    
+    // Reset all state - stops playback but keeps current step position
+    setIsPlaying(false);
+    setIsPaused(false);
+    setIsAnimating(false);
   }, []);
 
   const handleSpeedChange = useCallback((speed: 0.5 | 1 | 2) => {
@@ -278,12 +344,20 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
       <div className="w-full space-y-4">
         <div className="retro-window">
           <div className="retro-title-bar">
-            <span>🔍 VALIDATING CUBE...</span>
+            <span className="icon-text">
+              <span className="icon-md">🔍</span>
+              <span>VALIDATING CUBE...</span>
+            </span>
           </div>
           <div className="p-8 bg-gray-300 text-center">
-            <div className="text-6xl mb-4 animate-pulse">🧪</div>
+            <div className="text-6xl mb-4">
+              <span className="inline-block animate-pulse">🧪</span>
+            </div>
             <div className="text-black text-xl font-bold">Checking Cube Configuration</div>
-            <div className="text-gray-600 text-sm mt-2">Verifying colors, edges, and corners...</div>
+            <div className="text-gray-600 text-sm mt-2 instruction-text">Verifying colors, edges, and corners...</div>
+            <div className="mt-4 w-48 mx-auto">
+              <div className="skeleton h-4 rounded"></div>
+            </div>
           </div>
         </div>
         <ThreeJSErrorBoundary>
@@ -299,12 +373,20 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
       <div className="w-full space-y-4">
         <div className="retro-window">
           <div className="retro-title-bar">
-            <span>🧩 SOLVING CUBE...</span>
+            <span className="icon-text">
+              <span className="icon-md">🧩</span>
+              <span>SOLVING CUBE...</span>
+            </span>
           </div>
           <div className="p-8 bg-gray-300 text-center">
-            <div className="text-6xl mb-4 animate-spin">⏳</div>
+            <div className="text-6xl mb-4">
+              <span className="inline-block animate-spin">⏳</span>
+            </div>
             <div className="text-black text-xl font-bold">Calculating Solution</div>
-            <div className="text-gray-600 text-sm mt-2">Finding optimal moves...</div>
+            <div className="text-gray-600 text-sm mt-2 instruction-text">Finding optimal moves...</div>
+            <div className="mt-4 w-48 mx-auto">
+              <div className="skeleton h-4 rounded"></div>
+            </div>
           </div>
         </div>
         <ThreeJSErrorBoundary>
@@ -537,19 +619,19 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 lg:gap-8 w-full">
               {/* Step-by-Step Mode */}
               <button
                 onClick={() => setMode('step-by-step')}
-                className="retro-panel p-6 hover:bg-blue-50 transition-colors text-left group"
+                className="retro-panel p-4 sm:p-6 hover:bg-blue-50 transition-colors text-left group w-full"
               >
-                <div className="text-4xl mb-3">📋</div>
-                <h3 className="text-xl font-bold text-black mb-2">Step-by-Step</h3>
-                <p className="text-black text-sm">
+                <div className="text-3xl sm:text-4xl mb-3">📋</div>
+                <h3 className="text-lg sm:text-xl font-bold text-black mb-2">Step-by-Step</h3>
+                <p className="text-black text-xs sm:text-sm">
                   Follow each move one at a time. Perfect for learning and 
                   understanding the solution. Navigate forward/back at your own pace.
                 </p>
-                <div className="mt-4 text-blue-600 group-hover:underline">
+                <div className="mt-4 text-blue-600 group-hover:underline text-sm">
                   → Select this mode
                 </div>
               </button>
@@ -557,15 +639,15 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
               {/* Interactive Mode */}
               <button
                 onClick={() => setMode('interactive')}
-                className="retro-panel p-6 hover:bg-green-50 transition-colors text-left group"
+                className="retro-panel p-4 sm:p-6 hover:bg-green-50 transition-colors text-left group w-full"
               >
-                <div className="text-4xl mb-3">🎮</div>
-                <h3 className="text-xl font-bold text-black mb-2">Interactive</h3>
-                <p className="text-black text-sm">
+                <div className="text-3xl sm:text-4xl mb-3">🎮</div>
+                <h3 className="text-lg sm:text-xl font-bold text-black mb-2">Interactive</h3>
+                <p className="text-black text-xs sm:text-sm">
                   See the full solution and watch it animate. Great for visualizing 
                   the entire solve process. Includes auto-play feature.
                 </p>
-                <div className="mt-4 text-green-600 group-hover:underline">
+                <div className="mt-4 text-green-600 group-hover:underline text-sm">
                   → Select this mode
                 </div>
               </button>
@@ -616,10 +698,10 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
               </span>
             </div>
 
-            {/* Progress bar */}
-            <div className="bg-gray-400 border-2 mb-4" style={{ borderColor: '#fff #808080 #808080 #fff' }}>
+            {/* Progress bar - smooth animation */}
+            <div className="bg-gray-400 border-2 mb-4 rounded-sm overflow-hidden" style={{ borderColor: '#fff #808080 #808080 #fff' }}>
               <div 
-                className="bg-blue-500 h-4 transition-all"
+                className="bg-gradient-to-r from-blue-400 to-blue-500 h-4 progress-bar-smooth"
                 style={{ width: `${(currentStep / solution.length) * 100}%` }}
               />
             </div>
@@ -670,43 +752,66 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
               <button
                 onClick={handlePrevStep}
                 disabled={currentStep === 0 || isAnimating || isPlaying}
-                className="retro-btn flex-1"
+                aria-label="Previous step"
+                className="retro-btn flex-1 focus-ring"
               >
-                ← Previous
+                <span className="icon-text">
+                  <span>←</span>
+                  <span>Previous</span>
+                </span>
               </button>
-              <button
-                onClick={handleReset}
-                disabled={isPlaying}
-                className="retro-btn"
-              >
-                ⏮ Reset
-              </button>
+              <Tooltip text="Reset to beginning">
+                <button
+                  onClick={handleReset}
+                  disabled={isPlaying}
+                  aria-label="Reset"
+                  className="retro-btn focus-ring"
+                >
+                  ⏮
+                </button>
+              </Tooltip>
               <button
                 onClick={handleNextStep}
                 disabled={isComplete || isAnimating || isPlaying}
-                className="retro-btn flex-1"
+                aria-label="Next step"
+                className="retro-btn flex-1 focus-ring"
               >
-                {isAnimating ? '...' : 'Next →'}
+                <span className="icon-text">
+                  <span>{isAnimating ? '...' : 'Next'}</span>
+                  <span>→</span>
+                </span>
               </button>
             </div>
 
-            {/* Playback Controls */}
+            {/* Playback Controls - Enhanced */}
             <div className="retro-panel p-3 bg-gray-200">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={handlePlayAll}
                   disabled={isComplete && !isPlaying}
-                  className={`retro-btn px-4 ${isPlaying && !isPaused ? 'bg-yellow-200' : 'bg-green-200 hover:bg-green-300'}`}
+                  aria-label={isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play all'}
+                  className={`retro-btn px-4 focus-ring transition-smooth ${
+                    isPlaying && !isPaused 
+                      ? 'bg-yellow-200 hover:bg-yellow-300' 
+                      : 'retro-btn-success'
+                  }`}
                 >
-                  {isPlaying && !isPaused ? '⏸ Pause' : isPaused ? '▶ Resume' : '▶ Play All'}
+                  <span className="icon-text">
+                    <span>{isPlaying && !isPaused ? '⏸' : '▶'}</span>
+                    <span>{isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play All'}</span>
+                  </span>
                 </button>
                 
-                {isPlaying && (
+                {(isPlaying || isPaused) && (
                   <button
-                    onClick={handlePause}
-                    className="retro-btn px-3 bg-red-200 hover:bg-red-300"
+                    onClick={handleStop}
+                    aria-label="Stop playback"
+                    className="retro-btn px-3 retro-btn-danger focus-ring"
                   >
-                    ⏹ Stop
+                    <span className="icon-text">
+                      <span>⏹</span>
+                      <span>Stop</span>
+                    </span>
                   </button>
                 )}
 
@@ -718,7 +823,9 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                       <button
                         key={speed}
                         onClick={() => handleSpeedChange(speed)}
-                        className={`retro-btn px-2 py-1 text-xs ${
+                        aria-label={`Set speed to ${speed}x`}
+                        aria-pressed={animationSpeed === speed}
+                        className={`retro-btn px-2 py-1 text-xs focus-ring transition-smooth ${
                           animationSpeed === speed ? 'bg-blue-300 ring-2 ring-blue-500' : ''
                         }`}
                       >
@@ -732,15 +839,34 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
           </div>
         </div>
 
-        {/* 3D Cube with highlighted layer */}
-        <ThreeJSErrorBoundary>
-          <Cube3DViewer 
-            cubeState={currentCubeState} 
-            highlightLayer={highlightedLayer}
-            animatingMove={isAnimating ? currentMove?.notation : null}
-            animationSpeed={animationSpeed}
-          />
-        </ThreeJSErrorBoundary>
+        {/* Cube Views - 2D Net and 3D */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 w-full">
+          {/* 2D Animated Net View */}
+          <div className="retro-window w-full min-w-0">
+            <div className="retro-title-bar">
+              <span>📐 2D Net View</span>
+            </div>
+            <div className="p-3 sm:p-4 bg-gray-300">
+              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+                <CubeNetUnfolding 
+                  state={currentCubeState} 
+                  autoAnimate={false}
+                  animatingMove={isAnimating ? currentMove?.notation : null}
+                />
+              </Suspense>
+            </div>
+          </div>
+
+          {/* 3D Cube with highlighted layer */}
+          <ThreeJSErrorBoundary>
+            <Cube3DViewer 
+              cubeState={currentCubeState} 
+              highlightLayer={highlightedLayer}
+              animatingMove={isAnimating ? currentMove?.notation : null}
+              animationSpeed={animationSpeed}
+            />
+          </ThreeJSErrorBoundary>
+        </div>
 
         {/* Move List */}
         <div className="retro-window">
@@ -809,47 +935,64 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
               </div>
             </div>
 
-            {/* Controls */}
+            {/* Controls - Enhanced */}
             <div className="retro-panel p-3 bg-gray-200 mb-4">
               <div className="flex items-center gap-2 flex-wrap mb-3">
                 <button
                   onClick={handlePlayAll}
                   disabled={isComplete && !isPlaying}
-                  className={`retro-btn px-4 ${isPlaying && !isPaused ? 'bg-yellow-200' : 'bg-green-200 hover:bg-green-300'}`}
+                  aria-label={isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play all'}
+                  className={`retro-btn px-4 focus-ring transition-smooth ${
+                    isPlaying && !isPaused 
+                      ? 'bg-yellow-200 hover:bg-yellow-300' 
+                      : 'retro-btn-success'
+                  }`}
                 >
-                  {isPlaying && !isPaused ? '⏸ Pause' : isPaused ? '▶ Resume' : '▶ Play All'}
+                  <span className="icon-text">
+                    <span>{isPlaying && !isPaused ? '⏸' : '▶'}</span>
+                    <span>{isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play All'}</span>
+                  </span>
                 </button>
                 
-                {isPlaying && (
+                {(isPlaying || isPaused) && (
                   <button
-                    onClick={handlePause}
-                    className="retro-btn px-3 bg-red-200 hover:bg-red-300"
+                    onClick={handleStop}
+                    aria-label="Stop playback"
+                    className="retro-btn px-3 retro-btn-danger focus-ring"
                   >
-                    ⏹ Stop
+                    <span className="icon-text">
+                      <span>⏹</span>
+                      <span>Stop</span>
+                    </span>
                   </button>
                 )}
                 
                 <button
                   onClick={handlePrevStep}
                   disabled={currentStep === 0 || isAnimating || isPlaying}
-                  className="retro-btn"
+                  aria-label="Previous step"
+                  className="retro-btn focus-ring"
                 >
                   ◀ Prev
                 </button>
                 <button
                   onClick={handleNextStep}
                   disabled={isComplete || isAnimating || isPlaying}
-                  className="retro-btn"
+                  aria-label="Next step"
+                  className="retro-btn focus-ring"
                 >
                   Next ▶
                 </button>
-                <button
-                  onClick={handleReset}
-                  disabled={isPlaying}
-                  className="retro-btn"
-                >
-                  ⏮ Reset
-                </button>
+                <Tooltip text="Reset to beginning">
+                  <button
+                    onClick={handleReset}
+                    disabled={isPlaying}
+                    aria-label="Reset"
+                    className="retro-btn focus-ring"
+                  >
+                    ⏮
+                  </button>
+                </Tooltip>
               </div>
               
               {/* Speed Control */}
@@ -860,7 +1003,9 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                     <button
                       key={speed}
                       onClick={() => handleSpeedChange(speed)}
-                      className={`retro-btn px-2 py-1 text-xs ${
+                      aria-label={`Set speed to ${speed}x`}
+                      aria-pressed={animationSpeed === speed}
+                      className={`retro-btn px-2 py-1 text-xs focus-ring transition-smooth ${
                         animationSpeed === speed ? 'bg-blue-300 ring-2 ring-blue-500' : ''
                       }`}
                     >
@@ -875,23 +1020,44 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
             </div>
 
             {isComplete && (
-              <div className="retro-panel p-3 bg-green-100 text-center">
-                <span className="text-xl">🎉</span>
-                <span className="text-black font-bold ml-2">Cube Solved!</span>
+              <div className="retro-panel p-3 bg-green-100 text-center success-pulse validation-success-animation">
+                <span className="icon-text justify-center">
+                  <span className="icon-lg">🎉</span>
+                  <span className="text-black font-bold">Cube Solved!</span>
+                </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* 3D Cube */}
-        <ThreeJSErrorBoundary>
-          <Cube3DViewer 
-            cubeState={currentCubeState} 
-            highlightLayer={highlightedLayer}
-            animatingMove={isAnimating ? solution[currentStep]?.notation : null}
-            animationSpeed={animationSpeed}
-          />
-        </ThreeJSErrorBoundary>
+        {/* Cube Views - 2D Net and 3D */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 w-full">
+          {/* 2D Animated Net View */}
+          <div className="retro-window w-full min-w-0">
+            <div className="retro-title-bar">
+              <span>📐 2D Net View</span>
+            </div>
+            <div className="p-3 sm:p-4 bg-gray-300">
+              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+                <CubeNetUnfolding 
+                  state={currentCubeState} 
+                  autoAnimate={false}
+                  animatingMove={isAnimating ? solution[currentStep]?.notation : null}
+                />
+              </Suspense>
+            </div>
+          </div>
+
+          {/* 3D Cube */}
+          <ThreeJSErrorBoundary>
+            <Cube3DViewer 
+              cubeState={currentCubeState} 
+              highlightLayer={highlightedLayer}
+              animatingMove={isAnimating ? solution[currentStep]?.notation : null}
+              animationSpeed={animationSpeed}
+            />
+          </ThreeJSErrorBoundary>
+        </div>
 
         {/* Move Notation Legend */}
         <div className="retro-window">

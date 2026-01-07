@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import type { CubeState, FaceName, CubeColor } from '../types/cube';
 import { COLOR_HEX } from '../types/cube';
 
@@ -6,6 +6,7 @@ interface CubeNetUnfoldingProps {
   state: Partial<CubeState>;
   onScanClick?: () => void;
   autoAnimate?: boolean;
+  animatingMove?: string | null; // Move notation like "R", "U'", "F2"
 }
 
 // Default solved state for each face
@@ -23,11 +24,86 @@ const CELL_SIZE = 36;
 const CELL_GAP = 2;
 const FACE_SIZE = CELL_SIZE * 3 + CELL_GAP * 2;
 
-function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnfoldingProps) {
+// Define which cells are affected by each move type
+const MOVE_AFFECTED_CELLS: Record<string, { face: FaceName; cells: number[] }[]> = {
+  'U': [
+    { face: 'U', cells: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+    { face: 'F', cells: [0, 1, 2] },
+    { face: 'R', cells: [0, 1, 2] },
+    { face: 'B', cells: [0, 1, 2] },
+    { face: 'L', cells: [0, 1, 2] },
+  ],
+  'D': [
+    { face: 'D', cells: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+    { face: 'F', cells: [6, 7, 8] },
+    { face: 'R', cells: [6, 7, 8] },
+    { face: 'B', cells: [6, 7, 8] },
+    { face: 'L', cells: [6, 7, 8] },
+  ],
+  'F': [
+    { face: 'F', cells: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+    { face: 'U', cells: [6, 7, 8] },
+    { face: 'R', cells: [0, 3, 6] },
+    { face: 'D', cells: [0, 1, 2] },
+    { face: 'L', cells: [2, 5, 8] },
+  ],
+  'B': [
+    { face: 'B', cells: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+    { face: 'U', cells: [0, 1, 2] },
+    { face: 'L', cells: [0, 3, 6] },
+    { face: 'D', cells: [6, 7, 8] },
+    { face: 'R', cells: [2, 5, 8] },
+  ],
+  'R': [
+    { face: 'R', cells: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+    { face: 'F', cells: [2, 5, 8] },
+    { face: 'U', cells: [2, 5, 8] },
+    { face: 'B', cells: [0, 3, 6] },
+    { face: 'D', cells: [2, 5, 8] },
+  ],
+  'L': [
+    { face: 'L', cells: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+    { face: 'F', cells: [0, 3, 6] },
+    { face: 'U', cells: [0, 3, 6] },
+    { face: 'B', cells: [2, 5, 8] },
+    { face: 'D', cells: [0, 3, 6] },
+  ],
+};
+
+// Parse move notation
+function parseMove(notation: string | null | undefined): { face: string; isPrime: boolean; isDouble: boolean } | null {
+  if (!notation) return null;
+  const face = notation[0].toUpperCase();
+  const isPrime = notation.includes("'");
+  const isDouble = notation.includes("2");
+  return { face, isPrime, isDouble };
+}
+
+// Check if a cell is affected by a move
+function isCellAffected(moveFace: string, faceName: FaceName, cellIndex: number): boolean {
+  const affected = MOVE_AFFECTED_CELLS[moveFace];
+  if (!affected) return false;
+  
+  for (const item of affected) {
+    if (item.face === faceName && item.cells.includes(cellIndex)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function CubeNetUnfolding({ state, onScanClick, autoAnimate = true, animatingMove }: CubeNetUnfoldingProps) {
   const [isUnfolded, setIsUnfolded] = useState(!autoAnimate);
   const [animationPhase, setAnimationPhase] = useState(autoAnimate ? 0 : 6);
+  const [isAnimatingMove, setIsAnimatingMove] = useState(false);
+  const [moveAnimationProgress, setMoveAnimationProgress] = useState(0);
+  const [currentMoveFace, setCurrentMoveFace] = useState<string | null>(null);
+  const [isPrime, setIsPrime] = useState(false);
+  const prevStateRef = useRef<Partial<CubeState>>(state);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastMoveRef = useRef<string | null>(null);
 
-  // Animation sequence: 0 = start, 1 = F visible, 2 = U unfolds, 3 = L/R unfold, 4 = B unfolds, 5 = D unfolds
+  // Unfolding animation sequence
   useEffect(() => {
     if (!autoAnimate) {
       setIsUnfolded(true);
@@ -48,6 +124,67 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
     return () => clearTimeout(timer);
   }, [animationPhase, autoAnimate]);
 
+  // Handle move animation
+  useEffect(() => {
+    // Only trigger animation if it's a new move
+    if (animatingMove && animatingMove !== lastMoveRef.current) {
+      lastMoveRef.current = animatingMove;
+      const parsed = parseMove(animatingMove);
+      
+      if (parsed) {
+        // Cancel any existing animation
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+        
+        setCurrentMoveFace(parsed.face);
+        setIsPrime(parsed.isPrime);
+        setIsAnimatingMove(true);
+        setMoveAnimationProgress(0);
+        
+        const duration = 350; // ms
+        const startTime = Date.now();
+        
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // Ease in-out cubic for smoother animation
+          const eased = progress < 0.5 
+            ? 4 * progress * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+          
+          setMoveAnimationProgress(eased);
+          
+          if (progress < 1) {
+            animationFrameRef.current = requestAnimationFrame(animate);
+          } else {
+            setIsAnimatingMove(false);
+            setMoveAnimationProgress(0);
+            setCurrentMoveFace(null);
+            prevStateRef.current = state;
+          }
+        };
+        
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    } else if (!animatingMove) {
+      lastMoveRef.current = null;
+    }
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [animatingMove, state]);
+
+  // Update prev state ref when state changes and not animating
+  useEffect(() => {
+    if (!isAnimatingMove && !animatingMove) {
+      prevStateRef.current = state;
+    }
+  }, [state, isAnimatingMove, animatingMove]);
+
   const handleReplay = useCallback(() => {
     setIsUnfolded(false);
     setAnimationPhase(0);
@@ -58,8 +195,26 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
     return state[faceName] || DEFAULT_FACE[faceName];
   };
 
+  // Get move indicator text
+  const getMoveIndicator = () => {
+    if (!animatingMove) return null;
+    const parsed = parseMove(animatingMove);
+    if (!parsed) return null;
+    
+    const { face, isPrime: prime, isDouble } = parsed;
+    const direction = prime ? "'" : (isDouble ? "2" : "");
+    return `${face}${direction}`;
+  };
+
   return (
     <div className="cube-net-unfolding-container">
+      {/* Move Indicator */}
+      {animatingMove && (
+        <div className="cube-net-move-indicator" key={animatingMove}>
+          <span className="move-text">{getMoveIndicator()}</span>
+        </div>
+      )}
+
       {/* Scan Button */}
       {onScanClick && (
         <button
@@ -72,7 +227,7 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
       )}
 
       {/* Replay Animation Button */}
-      {autoAnimate && isUnfolded && (
+      {autoAnimate && isUnfolded && !animatingMove && (
         <button
           onClick={handleReplay}
           className="cube-net-replay-button"
@@ -95,7 +250,13 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
               opacity: animationPhase >= 2 ? 1 : 0,
             }}
           >
-            <FaceComponent colors={getFaceColors('U')} />
+            <FaceComponent 
+              colors={getFaceColors('U')} 
+              faceName="U"
+              animatingMove={currentMoveFace}
+              animationProgress={moveAnimationProgress}
+              isPrime={isPrime}
+            />
           </div>
           <div className="cube-net-face-spacer" />
           <div className="cube-net-face-spacer" />
@@ -111,7 +272,13 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
               opacity: animationPhase >= 3 ? 1 : 0,
             }}
           >
-            <FaceComponent colors={getFaceColors('L')} />
+            <FaceComponent 
+              colors={getFaceColors('L')} 
+              faceName="L"
+              animatingMove={currentMoveFace}
+              animationProgress={moveAnimationProgress}
+              isPrime={isPrime}
+            />
           </div>
           <div 
             className="cube-net-face"
@@ -119,7 +286,13 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
               opacity: animationPhase >= 1 ? 1 : 0,
             }}
           >
-            <FaceComponent colors={getFaceColors('F')} />
+            <FaceComponent 
+              colors={getFaceColors('F')} 
+              faceName="F"
+              animatingMove={currentMoveFace}
+              animationProgress={moveAnimationProgress}
+              isPrime={isPrime}
+            />
           </div>
           <div 
             className={`cube-net-face ${animationPhase >= 3 ? 'unfolded' : 'folded-right'}`}
@@ -130,7 +303,13 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
               transitionDelay: '0.1s',
             }}
           >
-            <FaceComponent colors={getFaceColors('R')} />
+            <FaceComponent 
+              colors={getFaceColors('R')} 
+              faceName="R"
+              animatingMove={currentMoveFace}
+              animationProgress={moveAnimationProgress}
+              isPrime={isPrime}
+            />
           </div>
           <div 
             className={`cube-net-face ${animationPhase >= 4 ? 'unfolded' : 'folded-right'}`}
@@ -140,7 +319,13 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
               opacity: animationPhase >= 4 ? 1 : 0,
             }}
           >
-            <FaceComponent colors={getFaceColors('B')} />
+            <FaceComponent 
+              colors={getFaceColors('B')} 
+              faceName="B"
+              animatingMove={currentMoveFace}
+              animationProgress={moveAnimationProgress}
+              isPrime={isPrime}
+            />
           </div>
         </div>
 
@@ -155,7 +340,13 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
               opacity: animationPhase >= 5 ? 1 : 0,
             }}
           >
-            <FaceComponent colors={getFaceColors('D')} />
+            <FaceComponent 
+              colors={getFaceColors('D')} 
+              faceName="D"
+              animatingMove={currentMoveFace}
+              animationProgress={moveAnimationProgress}
+              isPrime={isPrime}
+            />
           </div>
           <div className="cube-net-face-spacer" />
           <div className="cube-net-face-spacer" />
@@ -166,14 +357,37 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
         .cube-net-unfolding-container {
           position: relative;
           width: 100%;
-          max-width: 600px;
+          max-width: 100%;
           margin: 0 auto;
-          padding: 20px;
+          padding: clamp(12px, 3vw, 24px);
           background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
           border-radius: 16px;
           box-shadow: 
             0 10px 40px rgba(0, 0, 0, 0.08),
             inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .cube-net-move-indicator {
+          position: absolute;
+          top: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 8px 24px;
+          border-radius: 20px;
+          font-family: 'SF Mono', Monaco, monospace;
+          font-size: 20px;
+          font-weight: bold;
+          z-index: 20;
+          animation: pulse-glow 0.35s ease-in-out;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        @keyframes pulse-glow {
+          0% { transform: translateX(-50%) scale(0.8); opacity: 0; }
+          50% { transform: translateX(-50%) scale(1.1); }
+          100% { transform: translateX(-50%) scale(1); opacity: 1; }
         }
 
         .cube-net-scan-button {
@@ -260,11 +474,25 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
         }
 
         .cube-net-cell {
-          transition: filter 0.15s ease;
+          transition: all 0.15s ease;
         }
 
         .cube-net-cell:hover {
           filter: brightness(1.1);
+        }
+
+        .cube-net-cell.animating {
+          animation: cell-flash 0.35s ease-out;
+        }
+
+        @keyframes cell-flash {
+          0% { transform: scale(1); filter: brightness(1); }
+          30% { transform: scale(1.15); filter: brightness(1.3); }
+          100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        .cube-net-cell.rotating {
+          transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
       `}</style>
     </div>
@@ -274,9 +502,18 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true }: CubeNetUnf
 // Individual Face Component
 interface FaceComponentProps {
   colors: CubeColor[];
+  faceName: FaceName;
+  animatingMove: string | null;
+  animationProgress: number;
+  isPrime: boolean;
 }
 
-const FaceComponent = memo(({ colors }: FaceComponentProps) => {
+const FaceComponent = memo(({ colors, faceName, animatingMove, animationProgress, isPrime }: FaceComponentProps) => {
+  // Calculate rotation for the entire face if it's the main rotating face
+  const isMainFace = animatingMove === faceName;
+  const direction = isPrime ? -1 : 1;
+  const rotationDegree = isMainFace ? animationProgress * 90 * direction : 0;
+  
   return (
     <div 
       style={{
@@ -284,15 +521,19 @@ const FaceComponent = memo(({ colors }: FaceComponentProps) => {
         gridTemplateColumns: `repeat(3, ${CELL_SIZE}px)`,
         gridTemplateRows: `repeat(3, ${CELL_SIZE}px)`,
         gap: `${CELL_GAP}px`,
+        transform: isMainFace ? `rotate(${rotationDegree}deg)` : 'none',
+        transition: 'none',
       }}
     >
       {colors.map((color, index) => {
         const fillColor = color ? COLOR_HEX[color] : '#CCCCCC';
+        const isAffected = animatingMove ? isCellAffected(animatingMove, faceName, index) : false;
+        const isAnimating = isAffected && animationProgress > 0 && animationProgress < 1;
 
         return (
           <div
             key={index}
-            className="cube-net-cell"
+            className={`cube-net-cell ${isAnimating ? 'animating' : ''}`}
             style={{
               width: CELL_SIZE,
               height: CELL_SIZE,
@@ -300,7 +541,10 @@ const FaceComponent = memo(({ colors }: FaceComponentProps) => {
               border: '2px solid #1a1a1a',
               borderRadius: '3px',
               position: 'relative',
-              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.2)',
+              boxShadow: isAnimating 
+                ? `inset 0 0 0 1px rgba(255,255,255,0.2), 0 0 10px rgba(255,255,255,0.5)` 
+                : 'inset 0 0 0 1px rgba(255,255,255,0.2)',
+              transform: isAnimating ? `scale(${1 + 0.1 * Math.sin(animationProgress * Math.PI)})` : 'scale(1)',
             }}
           >
             {/* Highlight effect */}

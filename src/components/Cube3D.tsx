@@ -12,14 +12,25 @@ interface Cube3DProps {
   animationSpeed?: number; // 0.5, 1, or 2
 }
 
-// Color mapping
+// Color mapping - optimized for visual distinction during animation
+// Red: Deep crimson (cooler, darker) vs Orange: Bright tangerine (warmer, lighter)
 const COLOR_MAP: Record<NonNullable<CubeColor>, string> = {
-  W: '#FFFFFF',
-  Y: '#FFD500',
-  R: '#C41E3A',
-  O: '#FF5800',
-  G: '#009B48',
-  B: '#0051BA'
+  W: '#FFFFFF',  // Pure white
+  Y: '#FFEB3B',  // Bright yellow
+  R: '#9B0000',  // Deep crimson red - cooler, unmistakably red
+  O: '#FF8C00',  // Bright tangerine orange - warmer, clearly orange
+  G: '#00A550',  // Vibrant green
+  B: '#0047AB'   // Cobalt blue
+};
+
+// Material properties per color - enhances distinction especially for red/orange
+const COLOR_MATERIAL_PROPS: Record<NonNullable<CubeColor>, { roughness: number; metalness: number; emissiveIntensity: number }> = {
+  W: { roughness: 0.2, metalness: 0.05, emissiveIntensity: 0.1 },
+  Y: { roughness: 0.25, metalness: 0.05, emissiveIntensity: 0.15 },
+  R: { roughness: 0.35, metalness: 0.1, emissiveIntensity: 0.05 },   // Matte red, less reflective
+  O: { roughness: 0.2, metalness: 0.0, emissiveIntensity: 0.2 },     // Glossy orange, more emissive
+  G: { roughness: 0.25, metalness: 0.05, emissiveIntensity: 0.1 },
+  B: { roughness: 0.3, metalness: 0.08, emissiveIntensity: 0.08 }
 };
 
 // Face definitions with their normal directions and cell positions
@@ -60,31 +71,53 @@ function parseMoveNotation(notation: string): { face: string; angle: number } | 
   return { face, angle };
 }
 
-// Individual sticker component
+// Individual sticker component with enhanced material properties
 function Sticker({ 
   color, 
+  colorKey,
   position, 
   rotation,
   isGlowing = false 
 }: { 
-  color: string; 
+  color: string;
+  colorKey?: NonNullable<CubeColor>;
   position: [number, number, number]; 
   rotation: [number, number, number];
   isGlowing?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   
+  // Get material properties for this color (with fallback defaults)
+  const materialProps = colorKey ? COLOR_MATERIAL_PROPS[colorKey] : { roughness: 0.3, metalness: 0.1, emissiveIntensity: 0 };
+  
+  // Calculate emissive color - orange gets extra warmth, red gets slight coolness
+  const emissiveColor = useMemo(() => {
+    if (isGlowing) return color;
+    if (colorKey === 'O') return '#FF6600'; // Warm orange glow
+    if (colorKey === 'R') return '#400000'; // Very subtle dark red
+    return '#000000';
+  }, [color, colorKey, isGlowing]);
+  
   return (
-    <mesh ref={meshRef} position={position} rotation={rotation}>
-      <planeGeometry args={[0.85, 0.85]} />
-      <meshStandardMaterial 
-        color={color} 
-        emissive={isGlowing ? color : '#000000'}
-        emissiveIntensity={isGlowing ? 0.5 : 0}
-        roughness={0.3}
-        metalness={0.1}
-      />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      {/* Black border/outline for better definition */}
+      <mesh position={[0, 0, -0.005]}>
+        <planeGeometry args={[0.9, 0.9]} />
+        <meshBasicMaterial color="#1a1a1a" />
+      </mesh>
+      
+      {/* Main sticker face */}
+      <mesh ref={meshRef}>
+        <planeGeometry args={[0.82, 0.82]} />
+        <meshStandardMaterial 
+          color={color} 
+          emissive={emissiveColor}
+          emissiveIntensity={isGlowing ? 0.5 : materialProps.emissiveIntensity}
+          roughness={materialProps.roughness}
+          metalness={materialProps.metalness}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -143,6 +176,7 @@ function CubeFace({
   const stickers = useMemo(() => {
     const result: Array<{
       color: string;
+      colorKey: NonNullable<CubeColor> | undefined;
       localPos: [number, number];
       index: number;
     }> = [];
@@ -264,6 +298,7 @@ function CubeFace({
         
         result.push({
           color: color ? COLOR_MAP[color] : '#333333',
+          colorKey: color || undefined,
           localPos: [x, y],
           index
         });
@@ -274,10 +309,11 @@ function CubeFace({
 
   return (
     <group position={config.position} rotation={rotation}>
-      {stickers.map(({ color, localPos, index }) => (
+      {stickers.map(({ color, colorKey, localPos, index }) => (
         <Sticker
           key={index}
           color={color}
+          colorKey={colorKey}
           position={[localPos[0], localPos[1], 0.01]}
           rotation={[0, 0, 0]}
           isGlowing={isHighlighted}
@@ -303,6 +339,8 @@ function RubiksCube({ cubeState, highlightLayer, animatingMove, onMoveComplete, 
   const [animationProgress, setAnimationProgress] = useState(0);
   const [currentAnimation, setCurrentAnimation] = useState<{ face: string; angle: number } | null>(null);
   const [isAutoRotating, setIsAutoRotating] = useState(true);
+  // Hard stop flag - checked every frame to immediately halt animation
+  const shouldStopRef = useRef(false);
   
   // Safety check - don't render if cubeState is invalid
   if (!isValidCubeState(cubeState)) {
@@ -310,9 +348,11 @@ function RubiksCube({ cubeState, highlightLayer, animatingMove, onMoveComplete, 
     return null;
   }
   
-  // Handle new animation move
+  // Handle new animation move OR immediate stop
   useEffect(() => {
     if (animatingMove) {
+      // Starting a new animation
+      shouldStopRef.current = false;
       const parsed = parseMoveNotation(animatingMove);
       if (parsed) {
         setCurrentAnimation(parsed);
@@ -320,20 +360,39 @@ function RubiksCube({ cubeState, highlightLayer, animatingMove, onMoveComplete, 
         setIsAutoRotating(false); // Pause auto-rotation during animation
       }
     } else {
+      // IMMEDIATE STOP - set flag first so useFrame sees it immediately
+      shouldStopRef.current = true;
+      
+      // Reset all animation state synchronously
       setCurrentAnimation(null);
+      setAnimationProgress(0);
       setIsAutoRotating(true);
+      
+      // Reset rotation immediately
+      if (rotatingLayerRef.current) {
+        rotatingLayerRef.current.rotation.set(0, 0, 0);
+      }
     }
   }, [animatingMove]);
 
   // Animation frame
   useFrame((_, delta) => {
+    // HARD STOP CHECK - immediately bail out if stop flag is set
+    if (shouldStopRef.current) {
+      // Ensure rotation is reset even in useFrame
+      if (rotatingLayerRef.current) {
+        rotatingLayerRef.current.rotation.set(0, 0, 0);
+      }
+      return;
+    }
+    
     // Auto-rotate when not animating
     if (groupRef.current && isAutoRotating && !currentAnimation) {
       groupRef.current.rotation.y += delta * 0.1;
     }
     
-    // Animate face rotation
-    if (currentAnimation && rotatingLayerRef.current) {
+    // Animate face rotation - only if we have a valid animation AND not stopped
+    if (currentAnimation && rotatingLayerRef.current && !shouldStopRef.current) {
       const duration = 0.4 / animationSpeed; // Base duration adjusted by speed
       const progressIncrement = delta / duration;
       const newProgress = Math.min(animationProgress + progressIncrement, 1);
@@ -492,7 +551,7 @@ export default function Cube3DViewer({
         </div>
       </div>
       
-      <div className="bg-gray-800 relative" style={{ height: '400px' }}>
+      <div className="bg-gray-800 relative w-full" style={{ height: 'clamp(300px, 50vw, 450px)' }}>
         <Canvas
           camera={{ position: [4, 3, 6], fov: 45 }}
           gl={{ antialias: true, failIfMajorPerformanceCaveat: false }}
@@ -511,11 +570,17 @@ export default function Cube3DViewer({
             </div>
           }
         >
-          {/* Lighting */}
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <directionalLight position={[-10, -10, -5]} intensity={0.4} />
-          <pointLight position={[0, 10, 0]} intensity={0.5} />
+          {/* Lighting - optimized for color distinction, especially red vs orange */}
+          {/* Higher ambient prevents dark shadows that blend red/orange */}
+          <ambientLight intensity={0.75} />
+          {/* Main light from front-right-top - neutral white */}
+          <directionalLight position={[10, 10, 5]} intensity={0.9} color="#ffffff" />
+          {/* Fill light from back-left - slightly cool to enhance red distinction */}
+          <directionalLight position={[-10, -5, -5]} intensity={0.5} color="#f0f5ff" />
+          {/* Top light - warm to enhance orange visibility */}
+          <pointLight position={[0, 12, 0]} intensity={0.4} color="#fff8f0" />
+          {/* Front fill light to reduce face shadows during rotation */}
+          <pointLight position={[0, 0, 10]} intensity={0.3} color="#ffffff" />
           
           {/* The cube */}
           <RubiksCube 
@@ -550,16 +615,16 @@ export default function Cube3DViewer({
           </button>
         </div>
         
-        {/* Face orientation legend */}
+        {/* Face orientation legend - colors match enhanced COLOR_MAP */}
         <div className="absolute top-2 right-2 retro-panel p-1.5 text-xs">
           <div className="text-black font-bold mb-1">Face Legend:</div>
           <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-black">
-            <span><span className="inline-block w-3 h-3 bg-green-500 border border-black mr-1"></span>F</span>
-            <span><span className="inline-block w-3 h-3 bg-blue-600 border border-black mr-1"></span>B</span>
-            <span><span className="inline-block w-3 h-3 bg-red-500 border border-black mr-1"></span>R</span>
-            <span><span className="inline-block w-3 h-3 bg-orange-500 border border-black mr-1"></span>L</span>
-            <span><span className="inline-block w-3 h-3 bg-white border border-black mr-1"></span>U</span>
-            <span><span className="inline-block w-3 h-3 bg-yellow-400 border border-black mr-1"></span>D</span>
+            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#00A550'}}></span>F</span>
+            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#0047AB'}}></span>B</span>
+            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#9B0000'}}></span>R</span>
+            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#FF8C00'}}></span>L</span>
+            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#FFFFFF'}}></span>U</span>
+            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#FFEB3B'}}></span>D</span>
           </div>
         </div>
       </div>

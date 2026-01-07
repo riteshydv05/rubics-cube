@@ -6,10 +6,10 @@ import SolverView from './components/SolverView';
 import StatsView from './components/StatsView';
 import ErrorBoundary, { ThreeJSErrorBoundary } from './components/ErrorBoundary';
 
-const CubeNet = lazy(() => import('./components/CubeNet'));
 const CubeNetUnfolding = lazy(() => import('./components/CubeNetUnfolding'));
 const HelpModal = lazy(() => import('./components/HelpModal'));
 const AuthModal = lazy(() => import('./components/AuthModal'));
+const AboutModal = lazy(() => import('./components/AboutModal'));
 
 type ViewMode = 'editor' | 'visualizer' | 'solver' | 'stats';
 
@@ -63,6 +63,7 @@ function App() {
   );
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   // Persist cube state to localStorage whenever it changes
   useEffect(() => {
@@ -111,28 +112,41 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-b from-gray-200 to-gray-300 overflow-x-hidden">
-        <div className="w-full max-w-7xl mx-auto p-2 sm:p-4 box-border">
+      <div className="min-h-screen h-full w-full bg-gradient-to-b from-gray-200 to-gray-300 overflow-x-hidden">
+        {/* Skip to main content link for accessibility */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        
+        <div className="app-container w-full">
         {/* Header */}
         <div className="retro-window mb-4">
           <div className="retro-title-bar bg-blue-600">
             <div className="flex items-center gap-3">
-              <span className="text-2xl sm:text-3xl">🎮</span>
+              <span className="icon-lg">🎮</span>
               <div>
                 <div className="font-bold text-sm sm:text-lg">RUBIK'S CUBE SOLVER</div>
-                <div className="text-xs opacity-90 hidden sm:block">Manual Entry • 3D Visualization • AI Solver</div>
+                <div className="text-xs opacity-90 hidden sm:block instruction-text">Manual Entry • 3D Visualization • AI Solver</div>
               </div>
             </div>
-            <div className="retro-title-buttons">
+            <div className="flex gap-1">
               <button 
-                className="retro-title-btn" 
+                className="retro-title-btn focus-ring" 
+                onClick={() => setShowAbout(true)}
+                title="About"
+                aria-label="About RubikSight"
+              >ℹ</button>
+              <button 
+                className="retro-title-btn focus-ring" 
                 onClick={() => setShowHelp(true)}
                 title="Help"
+                aria-label="Open help"
               >?</button>
               <button 
-                className="retro-title-btn"
+                className="retro-title-btn focus-ring"
                 onClick={() => user ? setUser(null) : setShowAuthModal(true)}
                 title={user ? 'Logout' : 'Login'}
+                aria-label={user ? 'Logout' : 'Login'}
               >{user ? '🚪' : '👤'}</button>
             </div>
           </div>
@@ -140,25 +154,30 @@ function App() {
             <div className="text-black">
               {user ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm sm:text-base">Welcome, <strong>{user.name}</strong>! ✓</span>
+                  <span className="text-sm sm:text-base icon-text">
+                    <span>✓</span>
+                    <span>Welcome, <strong>{user.name}</strong>!</span>
+                  </span>
                   <button
                     onClick={() => setViewMode('stats')}
-                    className="retro-btn text-xs px-2 py-1"
+                    className="retro-btn text-xs px-2 py-1 focus-ring"
                     title="View Statistics"
+                    aria-label="View your statistics"
                   >
                     📊 Stats
                   </button>
                 </div>
               ) : (
-                <span className="text-xs sm:text-sm text-gray-600">Sign in to unlock Solve feature</span>
+                <span className="text-xs sm:text-sm text-gray-600 instruction-text">Sign in to unlock Solve feature</span>
               )}
             </div>
             <button
               onClick={() => setShowAuthModal(true)}
-              className={`retro-btn text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 ${
+              className={`retro-btn text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 focus-ring ${
                 user ? 'opacity-50' : ''
               }`}
               disabled={!!user}
+              aria-label={user ? 'Already signed in' : 'Sign in to your account'}
             >
               {user ? '✓ Signed In' : '🔐 Sign In'}
             </button>
@@ -166,7 +185,7 @@ function App() {
         </div>
 
         {/* Main Content */}
-        <div className="w-full">
+        <main id="main-content" className="w-full">
           {viewMode === 'editor' && (
             <ManualCubeEditor 
               onComplete={handleCubeComplete}
@@ -177,7 +196,10 @@ function App() {
           {viewMode === 'visualizer' && cubeState && (
             <div className="retro-window mb-4">
               <div className="retro-title-bar">
-                <span>🧩 3D CUBE VISUALIZATION</span>
+                <span className="icon-text">
+                  <span className="icon-md">🧩</span>
+                  <span>3D CUBE VISUALIZATION</span>
+                </span>
               </div>
               <div className="p-4 bg-gray-300">
                 {/* Animated Unfolding Cube Net View */}
@@ -191,17 +213,25 @@ function App() {
                 <div className="mt-4 flex gap-2 flex-wrap">
                   <button
                     onClick={handleBackToEditor}
-                    className="retro-btn flex-1"
+                    className="retro-btn flex-1 focus-ring"
+                    aria-label="Go back to editor"
                   >
-                    ← Back to Editor
+                    <span className="icon-text">
+                      <span>←</span>
+                      <span>Back to Editor</span>
+                    </span>
                   </button>
                   <button
                     onClick={handleSolveClick}
-                    className={`retro-btn flex-1 font-bold ${
-                      user ? 'bg-green-500 text-white' : 'bg-yellow-400'
+                    className={`retro-btn flex-1 font-bold focus-ring ${
+                      user ? 'retro-btn-success' : 'bg-yellow-400'
                     }`}
+                    aria-label={user ? 'Start solving the cube' : 'Login required to solve'}
                   >
-                    {user ? '🎯 SOLVE' : '🔐 Solve (Login Required)'}
+                    <span className="icon-text justify-center">
+                      <span>{user ? '🎯' : '🔐'}</span>
+                      <span>{user ? 'SOLVE' : 'Solve (Login Required)'}</span>
+                    </span>
                   </button>
                 </div>
               </div>
@@ -223,7 +253,7 @@ function App() {
               userName={user.name}
             />
           )}
-        </div>
+        </main>
 
         {/* Auth Modal */}
         {showAuthModal && (
@@ -239,6 +269,13 @@ function App() {
         {showHelp && (
           <Suspense fallback={<RetroLoader />}>
             <HelpModal onClose={() => setShowHelp(false)} />
+          </Suspense>
+        )}
+
+        {/* About Modal */}
+        {showAbout && (
+          <Suspense fallback={<RetroLoader />}>
+            <AboutModal onClose={() => setShowAbout(false)} />
           </Suspense>
         )}
       </div>

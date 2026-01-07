@@ -18,6 +18,23 @@ const COLORS: Array<NonNullable<CubeColor>> = ['W', 'Y', 'R', 'O', 'G', 'B'];
 // CENTER at index 4 is locked and predefined
 const TILE_POSITIONS = [0, 1, 2, 3, 5, 6, 7, 8]; // All except center
 
+// Tooltip component for consistent tooltips
+const Tooltip = ({ children, text, position = 'top' }: { 
+  children: React.ReactNode; 
+  text: string;
+  position?: 'top' | 'bottom';
+}) => (
+  <div className="tooltip-wrapper group relative inline-flex">
+    {children}
+    <span 
+      className="tooltip-content"
+      style={position === 'bottom' ? { bottom: 'auto', top: 'calc(100% + 8px)' } : {}}
+    >
+      {text}
+    </span>
+  </div>
+);
+
 // Define adjacent faces and their edge positions for each face
 // For each face, we define: top (3 cells), right (3 cells), bottom (3 cells), left (3 cells)
 const ADJACENT_FACES: Record<FaceName, {
@@ -150,40 +167,48 @@ function FaceEditor({ face, faceName, onUpdate, isActive, centerColor, highlight
   };
 
   const getFilledCount = () => TILE_POSITIONS.filter(i => face[i]).length;
+  const isComplete = getFilledCount() === 8;
 
   return (
-    <div className="retro-window">
+    <div className={`retro-window transition-smooth ${isActive ? 'active-face-indicator' : ''}`}>
       {/* Retro Title Bar */}
       <div className="retro-title-bar">
         <div className="flex items-center gap-2">
-          <span className="text-xl">✏️</span>
-          <span>{getFaceDescription(faceName)} ({getFilledCount()}/8 cells)</span>
+          <span className="icon-md">✏️</span>
+          <span className="font-bold">{getFaceDescription(faceName)}</span>
+          <span className="opacity-75">({getFilledCount()}/8)</span>
         </div>
-        <div className="retro-title-buttons">
-          <button className="retro-title-btn">_</button>
-          <button className="retro-title-btn">□</button>
-          <button className="retro-title-btn" style={{ color: '#e94560' }}>×</button>
+        <div className="flex items-center gap-2">
+          {isComplete && (
+            <span className="status-badge status-badge-success text-xs">
+              ✓ Complete
+            </span>
+          )}
         </div>
       </div>
 
       {/* Content Area */}
       <div className="p-3 sm:p-4 bg-gray-300">
-        {/* Orientation Hint */}
-        <div className="mb-2 retro-panel px-2 py-1 bg-blue-100">
-          <span className="text-xs sm:text-sm text-black font-medium">
-            {getOrientationHint(faceName)}
-          </span>
-        </div>
+        {/* Orientation Hint - with tooltip */}
+        <Tooltip text="This shows how to hold your physical cube when entering colors for this face">
+          <div className="mb-2 retro-panel px-3 py-2 bg-blue-100 cursor-help hover:bg-blue-50 transition-colors">
+            <span className="text-xs sm:text-sm text-black font-medium icon-text">
+              <span className="icon-md">🧭</span>
+              {getOrientationHint(faceName)}
+            </span>
+          </div>
+        </Tooltip>
         
         {/* Status */}
-        <div className="mb-3 sm:mb-4 flex items-center justify-between">
-          <div className="retro-panel px-2 sm:px-3 py-1 text-black text-xs sm:text-sm flex items-center gap-2">
-            <span className={`led ${isActive ? 'led-on' : 'led-off'} w-2 h-2 sm:w-3 sm:h-3`} />
-            {isActive ? 'ACTIVE' : 'INACTIVE'}
+        <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
+          <div className={`status-indicator ${isActive ? 'status-active' : 'status-inactive'}`}>
+            <span className="text-black text-xs sm:text-sm font-bold">
+              {isActive ? 'ACTIVE' : 'INACTIVE'}
+            </span>
           </div>
-          {getFilledCount() === 8 && (
-            <div className="retro-panel px-2 sm:px-3 py-1 text-black text-xs sm:text-sm">
-              ✅ Complete
+          {selectedColor && (
+            <div className="status-badge status-badge-info text-xs">
+              <span>🎨 Painting: {COLOR_NAMES[selectedColor]}</span>
             </div>
           )}
         </div>
@@ -249,10 +274,12 @@ function FaceEditor({ face, faceName, onUpdate, isActive, centerColor, highlight
                     key={index}
                     onClick={() => handleCellClick(index)}
                     disabled={!isActive || isCenter}
+                    aria-label={`Cell ${index + 1}, ${color ? COLOR_NAMES[color] : 'empty'}${isCenter ? ', center cell locked' : ''}`}
                     className={`
-                      w-14 h-14 sm:w-20 sm:h-20 border-2 sm:border-4 transition-all relative
-                      ${isCenter ? 'cursor-not-allowed' : isActive && selectedColor ? 'cursor-pointer hover:scale-110 hover:ring-2 hover:ring-yellow-400' : 'cursor-default'}
+                      face-cell w-14 h-14 sm:w-20 sm:h-20 border-2 sm:border-4 relative focus-ring
+                      ${isCenter ? 'cursor-not-allowed opacity-90' : isActive && selectedColor ? 'cursor-pointer' : 'cursor-default'}
                       ${isHighlighted ? 'ring-4 ring-red-500 ring-opacity-100 animate-pulse' : ''}
+                      ${!isCenter && isActive && selectedColor ? 'hover:scale-105 hover:ring-2 hover:ring-yellow-400' : ''}
                     `}
                     style={{
                       backgroundColor: color ? COLOR_HEX[color] : '#f0f0f0',
@@ -260,6 +287,7 @@ function FaceEditor({ face, faceName, onUpdate, isActive, centerColor, highlight
                       boxShadow: isHighlighted 
                         ? '0 0 10px rgba(239, 68, 68, 0.8), inset 0 0 5px rgba(239, 68, 68, 0.3)' 
                         : 'inset -2px -2px 0 rgba(0,0,0,0.2), inset 2px 2px 0 rgba(255,255,255,0.4)',
+                      transition: 'transform 0.15s ease-out, box-shadow 0.15s ease-out',
                     }}
                   >
                     {/* Error indicator */}
@@ -281,13 +309,15 @@ function FaceEditor({ face, faceName, onUpdate, isActive, centerColor, highlight
                       {index + 1}
                     </span>
                     
-                    {/* Center lock */}
+                    {/* Center lock - with tooltip */}
                     {isCenter && (
-                      <span className="text-lg sm:text-2xl" style={{ 
-                        filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.5))' 
-                      }}>
-                        🔒
-                      </span>
+                      <Tooltip text="Center color is fixed and defines this face">
+                        <span className="text-lg sm:text-2xl cursor-help" style={{ 
+                          filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.5))' 
+                        }}>
+                          🔒
+                        </span>
+                      </Tooltip>
                     )}
                   </button>
                 );
@@ -358,39 +388,43 @@ function FaceEditor({ face, faceName, onUpdate, isActive, centerColor, highlight
         {/* Color Palette - Always Visible */}
         {isActive && (
           <div className="retro-panel p-3 sm:p-4">
-            <p className="text-black text-sm sm:text-lg mb-2 sm:mb-3 font-bold">
-              {selectedColor ? `🎨 Painting with ${COLOR_NAMES[selectedColor]} - Click tiles to paint` : '👇 Pick a color first, then click tiles to paint:'}
+            <p className="text-black text-sm sm:text-base mb-2 sm:mb-3 font-bold icon-text">
+              <span className="icon-md">{selectedColor ? '🎨' : '👇'}</span>
+              {selectedColor ? `Painting with ${COLOR_NAMES[selectedColor]} - Click tiles to paint` : 'Pick a color, then click tiles:'}
             </p>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 sm:gap-2 mb-2 sm:mb-3">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 mb-3">
               {COLORS.map((color) => {
                 const isSelected = selectedColor === color;
                 return (
-                  <button
-                    key={color}
-                    onClick={() => handleColorSelect(color)}
-                    className={`w-10 h-10 sm:w-12 sm:h-12 border-2 sm:border-4 transition-all ${
-                      isSelected 
-                        ? 'ring-4 ring-yellow-400 scale-110 shadow-lg' 
-                        : 'hover:scale-105 cursor-pointer'
-                    }`}
-                    style={{
-                      backgroundColor: COLOR_HEX[color],
-                      borderColor: isSelected ? '#FFD700' : '#fff #808080 #808080 #fff',
-                    }}
-                    title={`${COLOR_NAMES[color]} (${colorCounts[color] || 0}/9 used on this face)`}
-                  >
-                    <span className="text-xs font-bold" style={{ 
-                      color: color === 'Y' || color === 'W' ? '#000' : '#fff',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
-                    }}>
-                      {colorCounts[color] || 0}
-                    </span>
-                  </button>
+                  <Tooltip key={color} text={`${COLOR_NAMES[color]} (${colorCounts[color] || 0}/9 on this face)`} position="bottom">
+                    <button
+                      onClick={() => handleColorSelect(color)}
+                      aria-label={`Select ${COLOR_NAMES[color]} color`}
+                      aria-pressed={isSelected}
+                      className={`color-palette-btn w-12 h-12 sm:w-14 sm:h-14 border-2 sm:border-4 focus-ring ${
+                        isSelected ? 'selected' : ''
+                      }`}
+                      style={{
+                        backgroundColor: COLOR_HEX[color],
+                        borderColor: isSelected ? '#FFD700' : '#fff #808080 #808080 #fff',
+                      }}
+                    >
+                      <span className="text-sm font-bold" style={{ 
+                        color: color === 'Y' || color === 'W' ? '#000' : '#fff',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
+                      }}>
+                        {colorCounts[color] || 0}
+                      </span>
+                    </button>
+                  </Tooltip>
                 );
               })}
             </div>
-            <div className="flex gap-2 text-xs sm:text-sm text-gray-700 flex-wrap">
-              <span className="retro-panel px-2 py-1">Press W, Y, R, O, G, or B to select color | DEL = Erase</span>
+            <div className="retro-panel px-3 py-2 bg-gray-200 text-xs sm:text-sm text-gray-700">
+              <span className="icon-text">
+                <span>⌨️</span>
+                <span>Keyboard: W, Y, R, O, G, B to select | DEL/Backspace to deselect</span>
+              </span>
             </div>
           </div>
         )}

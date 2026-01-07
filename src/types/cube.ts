@@ -12,11 +12,11 @@ export const COLOR_NAMES: Record<NonNullable<CubeColor>, string> = {
 
 export const COLOR_HEX: Record<NonNullable<CubeColor>, string> = {
   W: '#FFFFFF',
-  Y: '#FFD500',
-  R: '#B71C1C',  // Darker, more crimson red
-  O: '#FF6F00',  // Brighter, more vibrant orange
-  G: '#009B48',
-  B: '#0051BA',
+  Y: '#FFEB3B',  // Slightly warmer yellow for better contrast
+  R: '#9B0000',  // Deep crimson red - cooler, darker
+  O: '#FF8C00',  // Bright warm orange - more saturated, warmer
+  G: '#00A550',  // Slightly brighter green
+  B: '#0047AB',  // Cobalt blue
 };
 
 // Face types - standard URFDLB notation

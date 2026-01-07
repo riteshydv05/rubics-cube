@@ -8,6 +8,55 @@ import { isSolved } from '../utils/solver';
 
 const CubeNetUnfolding = lazy(() => import('./CubeNetUnfolding'));
 
+// Tooltip component
+const Tooltip = ({ children, text }: { children: React.ReactNode; text: string }) => (
+  <div className="tooltip-wrapper group relative inline-flex">
+    {children}
+    <span className="tooltip-content">{text}</span>
+  </div>
+);
+
+// Collapsible section for mobile
+const CollapsibleSection = ({ 
+  title, 
+  icon, 
+  children, 
+  defaultOpen = true,
+  badge
+}: { 
+  title: string; 
+  icon: string; 
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  badge?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <div className="retro-window accordion-panel">
+      <button 
+        className="collapsible-header w-full"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        <span className="icon-text font-bold text-black">
+          <span className="icon-md">{icon}</span>
+          <span>{title}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          {badge}
+          <span className={`collapsible-icon ${isOpen ? 'open' : ''}`}>▼</span>
+        </div>
+      </button>
+      <div className={`collapsible-content ${isOpen ? 'open' : ''}`}>
+        <div className="p-3 sm:p-4 bg-gray-300">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface ManualCubeEditorProps {
   onComplete: (cubeState: CubeState) => void;
   initialState?: CubeState | null;
@@ -298,73 +347,70 @@ export default function ManualCubeEditor({ onComplete, initialState }: ManualCub
   }, [cubeState]);
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-full">
       {/* Header */}
       <div className="retro-window mb-4">
         <div className="retro-title-bar">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🎮</span>
-            <span>RUBIK'S CUBE EDITOR</span>
-          </div>
-          <div className="retro-title-buttons">
-            <button className="retro-title-btn">_</button>
-            <button className="retro-title-btn">□</button>
+            <span className="icon-lg">🎮</span>
+            <span className="font-bold">RUBIK'S CUBE EDITOR</span>
           </div>
         </div>
         <div className="p-3 sm:p-4 bg-gray-300">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
-            <span className="text-black text-sm sm:text-base">
-              Progress: {getFilledFaceCount()}/6 faces
-            </span>
+            <div className="icon-text text-black text-sm sm:text-base">
+              <span className="icon-md">📊</span>
+              <span>Progress: <strong>{getFilledFaceCount()}/6</strong> faces complete</span>
+            </div>
             <div className="flex gap-2 flex-wrap">
-              <span className="retro-panel px-2 py-1 text-xs sm:text-sm">
-                {isComplete ? '✅ Complete' : '⏳ Incomplete'}
-              </span>
-              {isComplete && validationResult?.isValid && (
-                <span className="retro-panel px-2 py-1 text-xs sm:text-sm bg-green-200">
-                  ✓ Valid
+              {isComplete ? (
+                <span className={`status-badge ${validationResult?.isValid ? 'status-badge-success' : 'status-badge-error'}`}>
+                  {validationResult?.isValid ? '✓ Valid & Ready' : `⚠️ ${validationResult?.errors.length || 0} Errors`}
                 </span>
-              )}
-              {isComplete && validationResult && !validationResult.isValid && (
-                <span className="retro-panel px-2 py-1 text-xs sm:text-sm bg-red-200">
-                  ⚠️ {validationResult.errors.length} Error{validationResult.errors.length !== 1 ? 's' : ''}
+              ) : (
+                <span className="status-badge status-badge-info">
+                  ⏳ {6 - getFilledFaceCount()} faces remaining
                 </span>
               )}
             </div>
           </div>
           
-          {/* Progress bar */}
-          <div className="bg-gray-400 border-2 border-solid" style={{ borderColor: '#fff #808080 #808080 #fff' }}>
+          {/* Progress bar - smooth animation */}
+          <div className="bg-gray-400 border-2 border-solid rounded-sm overflow-hidden" style={{ borderColor: '#fff #808080 #808080 #fff' }}>
             <div 
-              className="bg-green-500 h-6 flex items-center justify-center text-xs font-bold text-black transition-all"
+              className="bg-gradient-to-r from-green-400 to-green-500 h-6 flex items-center justify-center text-xs font-bold text-black progress-bar-smooth"
               style={{ width: `${(getFilledFaceCount() / 6) * 100}%` }}
             >
               {getFilledFaceCount() > 0 && `${Math.round((getFilledFaceCount() / 6) * 100)}%`}
             </div>
           </div>
           
-          {/* Orientation Guide */}
-          <div className="mt-3 retro-panel p-2">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold text-black">🧭 Orientation Guide:</span>
-              <span className="text-xs text-gray-700">Hold cube with white center facing UP</span>
+          {/* Compact Orientation Guide */}
+          <Tooltip text="Always keep white center facing UP when entering colors">
+            <div className="mt-3 retro-panel p-2 cursor-help hover:bg-gray-100 transition-colors">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="icon-text text-xs font-bold text-black">
+                  <span>🧭</span>
+                  <span>Orientation:</span>
+                </span>
+                <div className="flex gap-1 text-xs flex-wrap">
+                  <span className="px-1.5 py-0.5 rounded bg-white border border-gray-400 font-medium">⬆ W</span>
+                  <span className="px-1.5 py-0.5 rounded bg-yellow-300 border border-gray-400 font-medium">⬇ Y</span>
+                  <span className="px-1.5 py-0.5 rounded bg-green-400 border border-gray-400 font-medium">👁 G</span>
+                  <span className="px-1.5 py-0.5 rounded bg-blue-400 border border-gray-400 text-white font-medium">🔙 B</span>
+                  <span className="px-1.5 py-0.5 rounded bg-red-400 border border-gray-400 text-white font-medium">➡ R</span>
+                  <span className="px-1.5 py-0.5 rounded bg-orange-400 border border-gray-400 font-medium">⬅ O</span>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1 text-xs">
-              <span className="px-1.5 py-0.5 rounded bg-white border border-gray-400">⬆ White=UP</span>
-              <span className="px-1.5 py-0.5 rounded bg-yellow-300 border border-gray-400">⬇ Yellow=DOWN</span>
-              <span className="px-1.5 py-0.5 rounded bg-green-400 border border-gray-400">👁 Green=FRONT</span>
-              <span className="px-1.5 py-0.5 rounded bg-blue-400 border border-gray-400 text-white">🔙 Blue=BACK</span>
-              <span className="px-1.5 py-0.5 rounded bg-red-400 border border-gray-400 text-white">➡ Red=RIGHT</span>
-              <span className="px-1.5 py-0.5 rounded bg-orange-400 border border-gray-400">⬅ Orange=LEFT</span>
-            </div>
-          </div>
+          </Tooltip>
         </div>
       </div>
 
       {/* Main Content - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 xl:gap-8 w-full">
         {/* Left Column - Face Editor */}
-        <div className="space-y-4">
+        <div className="space-y-4 lg:space-y-5 min-w-0 w-full">
           {/* Face Editor */}
           <FaceEditor
             face={currentFace}
@@ -382,23 +428,31 @@ export default function ManualCubeEditor({ onComplete, initialState }: ManualCub
           {/* Navigation Bar */}
           <div className="retro-window">
             <div className="retro-title-bar">
-              <span>📍 Face Selection</span>
+              <span className="icon-text">
+                <span className="icon-md">📍</span>
+                <span>Face Selection</span>
+              </span>
             </div>
             <div className="p-3 sm:p-4 bg-gray-300">
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-3">
-                {FACES.map((face, idx) => (
-                  <button
-                    key={face}
-                    onClick={() => setCurrentFaceIndex(idx)}
-                    className={`retro-btn py-2 text-xs sm:text-sm ${
-                      idx === currentFaceIndex ? 'ring-2 ring-yellow-400 bg-yellow-100' : ''
-                    }`}
-                  >
-                    <div className="font-bold">{face}</div>
-                    <div className="text-xs hidden sm:block">{FACE_DESCRIPTIONS[face].split(' ')[0]}</div>
-                    {cubeState[face].every(c => c !== null) && <div className="text-green-600">✓</div>}
-                  </button>
-                ))}
+                {FACES.map((face, idx) => {
+                  const faceComplete = cubeState[face].every(c => c !== null);
+                  return (
+                    <button
+                      key={face}
+                      onClick={() => setCurrentFaceIndex(idx)}
+                      aria-label={`Select ${FACE_DESCRIPTIONS[face]}${faceComplete ? ', complete' : ''}`}
+                      aria-pressed={idx === currentFaceIndex}
+                      className={`retro-btn py-2 text-xs sm:text-sm focus-ring transition-smooth ${
+                        idx === currentFaceIndex ? 'ring-2 ring-yellow-400 bg-yellow-100 scale-105' : ''
+                      } ${faceComplete ? 'bg-green-50' : ''}`}
+                    >
+                      <div className="font-bold">{face}</div>
+                      <div className="text-xs hidden sm:block opacity-75">{FACE_DESCRIPTIONS[face].split(' ')[0]}</div>
+                      {faceComplete && <div className="text-green-600 text-xs">✓</div>}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Quick navigation */}
@@ -406,51 +460,70 @@ export default function ManualCubeEditor({ onComplete, initialState }: ManualCub
                 <button
                   onClick={handlePrev}
                   disabled={currentFaceIndex === 0}
-                  className="retro-btn flex-1"
+                  aria-label="Previous face"
+                  className="retro-btn flex-1 focus-ring"
                 >
-                  ← Prev
+                  <span className="icon-text">
+                    <span>←</span>
+                    <span>Prev</span>
+                  </span>
                 </button>
                 <button
                   onClick={handleNext}
                   disabled={currentFaceIndex === FACES.length - 1}
-                  className="retro-btn flex-1"
+                  aria-label="Next face"
+                  className="retro-btn flex-1 focus-ring"
                 >
-                  Next →
+                  <span className="icon-text">
+                    <span>Next</span>
+                    <span>→</span>
+                  </span>
                 </button>
               </div>
 
-              {/* Instructions */}
-              <div className="retro-panel p-2 sm:p-3 text-black text-xs sm:text-sm">
-                <p className="font-bold mb-1">📋 Instructions:</p>
-                <p>Hold your cube with <strong>{FACE_DESCRIPTIONS[currentFaceName]}</strong> facing you.</p>
-                <p className="mt-1">Click each tile to assign a color from the palette.</p>
+              {/* Instructions - concise */}
+              <div className="retro-panel p-2 sm:p-3 text-black text-xs sm:text-sm instruction-text">
+                <span className="icon-text">
+                  <span>📋</span>
+                  <span>Hold cube with <strong>{FACE_DESCRIPTIONS[currentFaceName]}</strong> facing you, then paint colors.</span>
+                </span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Column - Color Stats & Controls */}
-        <div className="space-y-4">
-          {/* Color Statistics */}
-          <div className="retro-window">
-            <div className="retro-title-bar">
-              <span>📊 Color Count (Total)</span>
-            </div>
-            <div className="p-3 sm:p-4 bg-gray-300">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {(['W', 'Y', 'R', 'O', 'G', 'B'] as const).map(color => {
-                  const count = globalColorCounts[color];
-                  const isValid = count === 9;
-                  const isTooMany = count > 9;
-                  return (
+        <div className="space-y-4 lg:space-y-5 min-w-0 w-full">
+          {/* Color Statistics - Collapsible on mobile */}
+          <CollapsibleSection 
+            title="Color Count" 
+            icon="📊"
+            badge={
+              <span className={`status-badge text-xs ${
+                Object.values(globalColorCounts).every(c => c === 9) 
+                  ? 'status-badge-success' 
+                  : Object.values(globalColorCounts).some(c => c > 9) 
+                    ? 'status-badge-error' 
+                    : 'status-badge-info'
+              }`}>
+                {Object.values(globalColorCounts).filter(c => c === 9).length}/6
+              </span>
+            }
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+              {(['W', 'Y', 'R', 'O', 'G', 'B'] as const).map(color => {
+                const count = globalColorCounts[color];
+                const isValid = count === 9;
+                const isTooMany = count > 9;
+                return (
+                  <Tooltip key={color} text={`${isValid ? 'Perfect!' : isTooMany ? `Remove ${count - 9}` : `Need ${9 - count} more`}`}>
                     <div 
-                      key={color}
-                      className={`retro-panel p-2 flex items-center gap-2 ${
-                        isTooMany ? 'bg-red-100' : isValid ? 'bg-green-100' : ''
+                      className={`retro-panel p-2 flex items-center gap-2 transition-smooth cursor-help ${
+                        isTooMany ? 'bg-red-100 pattern-error' : isValid ? 'bg-green-100 pattern-success' : ''
                       }`}
                     >
                       <div 
-                        className="w-6 h-6 border-2"
+                        className="w-6 h-6 border-2 flex-shrink-0 rounded-sm"
                         style={{ 
                           backgroundColor: color === 'W' ? '#fff' : color === 'Y' ? '#FFD500' : 
                             color === 'R' ? '#C41E3A' : color === 'O' ? '#FF5800' :
@@ -460,78 +533,117 @@ export default function ManualCubeEditor({ onComplete, initialState }: ManualCub
                       />
                       <span className={`font-bold ${isTooMany ? 'text-red-600' : isValid ? 'text-green-600' : 'text-black'}`}>
                         {count}/9
+                        {isValid && ' ✓'}
+                        {isTooMany && ' ⚠'}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
+                  </Tooltip>
+                );
+              })}
             </div>
-          </div>
+          </CollapsibleSection>
 
           {/* Control Bar */}
           <div className="retro-window">
             <div className="retro-title-bar">
-              <span>⚡ Actions</span>
+              <span className="icon-text">
+                <span className="icon-md">⚡</span>
+                <span>Actions</span>
+              </span>
               {lastSaveTime && (
-                <span className="text-xs opacity-75 ml-2">
+                <span className="status-badge status-badge-success text-xs">
                   💾 Saved
                 </span>
               )}
             </div>
             <div className="p-3 sm:p-4 bg-gray-300">
               <div className="flex gap-2 mb-3 flex-wrap">
-                <button
-                  onClick={handleUndo}
-                  disabled={!canUndo}
-                  className="retro-btn flex-1 min-w-20"
-                >
-                  ↶ Undo
-                </button>
-                <button
-                  onClick={handleRedo}
-                  disabled={!canRedo}
-                  className="retro-btn flex-1 min-w-20"
-                >
-                  ↷ Redo
-                </button>
-                <button
-                  onClick={handleClear}
-                  className="retro-btn flex-1 min-w-20"
-                >
-                  🗑️ Clear
-                </button>
+                <Tooltip text="Undo last change">
+                  <button
+                    onClick={handleUndo}
+                    disabled={!canUndo}
+                    aria-label="Undo"
+                    className="retro-btn flex-1 min-w-20 focus-ring"
+                  >
+                    <span className="icon-text">
+                      <span>↶</span>
+                      <span>Undo</span>
+                    </span>
+                  </button>
+                </Tooltip>
+                <Tooltip text="Redo undone change">
+                  <button
+                    onClick={handleRedo}
+                    disabled={!canRedo}
+                    aria-label="Redo"
+                    className="retro-btn flex-1 min-w-20 focus-ring"
+                  >
+                    <span className="icon-text">
+                      <span>↷</span>
+                      <span>Redo</span>
+                    </span>
+                  </button>
+                </Tooltip>
+                <Tooltip text="Clear all faces and start over">
+                  <button
+                    onClick={handleClear}
+                    aria-label="Clear all"
+                    className="retro-btn flex-1 min-w-20 focus-ring"
+                  >
+                    <span className="icon-text">
+                      <span>🗑️</span>
+                      <span>Clear</span>
+                    </span>
+                  </button>
+                </Tooltip>
               </div>
 
+              {/* Primary CTA - Enhanced styling */}
               <button
                 onClick={handleComplete}
                 disabled={!isComplete || !validationResult?.isValid}
-                className={`w-full py-3 sm:py-4 font-bold text-white text-sm sm:text-lg transition-all border-2 ${
+                className={`retro-btn w-full py-3 sm:py-4 font-bold text-sm sm:text-lg focus-ring ${
                   isComplete && validationResult?.isValid
-                    ? 'bg-green-500 hover:bg-green-600 cursor-pointer'
-                    : 'bg-gray-400 cursor-not-allowed opacity-50'
+                    ? 'retro-btn-primary-enhanced'
+                    : 'retro-btn-secondary opacity-50 cursor-not-allowed'
                 }`}
-                style={{
-                  borderColor: '#fff #808080 #808080 #fff',
-                }}
               >
-                🎯 PROCEED TO 3D VIEW
+                <span className="icon-text">
+                  <span className="icon-md">🎯</span>
+                  <span>PROCEED TO 3D VIEW</span>
+                </span>
               </button>
+              
+              {/* Helper text */}
+              {!isComplete && (
+                <p className="text-center text-xs text-gray-600 mt-2">
+                  Complete all 6 faces to proceed
+                </p>
+              )}
+              {isComplete && !validationResult?.isValid && (
+                <p className="text-center text-xs text-red-600 mt-2">
+                  Fix validation errors to proceed
+                </p>
+              )}
             </div>
           </div>
 
           {/* Already Solved Warning */}
           {isAlreadySolved && (
-            <div className="retro-window">
-              <div className="retro-title-bar bg-yellow-400">
-                <span>⚠️ ALREADY SOLVED</span>
+            <div className="retro-window validation-success-animation">
+              <div className="retro-title-bar bg-yellow-500">
+                <span className="icon-text">
+                  <span className="icon-md">⚠️</span>
+                  <span>ALREADY SOLVED</span>
+                </span>
               </div>
               <div className="p-3 sm:p-4 bg-yellow-50">
-                <p className="text-black font-bold mb-2">🎉 This cube is already solved!</p>
-                <p className="text-black text-sm mb-2">
-                  Each face has all the same color. To test the solver, you need to <strong>scramble</strong> the cube first.
+                <p className="text-black font-bold mb-2 icon-text">
+                  <span>🎉</span>
+                  <span>This cube is already solved!</span>
                 </p>
-                <p className="text-black text-sm">
-                  💡 <strong>Tip:</strong> Mix colors across faces to create a puzzle the solver can solve.
+                <p className="text-black text-sm instruction-text">
+                  Each face has all the same color. To test the solver, <strong>scramble</strong> the cube first by mixing colors across faces.
                 </p>
               </div>
             </div>
@@ -551,12 +663,12 @@ export default function ManualCubeEditor({ onComplete, initialState }: ManualCub
             />
           )}
 
-          {/* Orientation Guide */}
-          <div className="retro-window">
-            <div className="retro-title-bar">
-              <span>🧭 Cube Orientation Guide</span>
-            </div>
-            <div className="p-3 sm:p-4 bg-gray-300">
+          {/* Orientation Guide - Collapsible */}
+          <CollapsibleSection 
+            title="Cube Orientation Guide" 
+            icon="🧭"
+            defaultOpen={false}
+          >
               <div className="retro-panel p-3 bg-white">
                 <div className="text-center mb-2">
                   <div className="text-lg font-bold text-black">Current: {FACE_DESCRIPTIONS[currentFaceName]}</div>
@@ -628,25 +740,45 @@ export default function ManualCubeEditor({ onComplete, initialState }: ManualCub
                 {/* Next instruction */}
                 {currentFaceIndex < FACES.length - 1 && (
                   <div className="retro-panel p-2 bg-blue-50 text-center text-xs text-black">
-                    <strong>📍 Next:</strong> {FACE_DESCRIPTIONS[FACES[currentFaceIndex + 1]]}
+                    <span className="icon-text justify-center">
+                      <span>📍</span>
+                      <span><strong>Next:</strong> {FACE_DESCRIPTIONS[FACES[currentFaceIndex + 1]]}</span>
+                    </span>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+          </CollapsibleSection>
 
-          {/* Tips */}
-          <div className="retro-panel p-3 sm:p-4 bg-yellow-100 border-2">
-            <p className="text-black text-xs sm:text-sm font-bold mb-2">💡 TIPS:</p>
-            <ul className="text-black text-xs sm:text-sm space-y-1 list-disc list-inside">
-              <li>Centers are locked (predefined colors)</li>
-              <li>Each color appears exactly 9 times total</li>
-              <li>Keyboard: W, Y, R, O, G, B to select colors</li>
-              <li>Use the orientation guide above</li>
-              <li>Watch the 3D preview below update live!</li>
+          {/* Tips - Collapsible on mobile */}
+          <CollapsibleSection title="Tips & Shortcuts" icon="💡" defaultOpen={false}>
+            <ul className="text-black text-xs sm:text-sm space-y-1 list-none">
+              <li className="icon-text"><span>🔒</span><span>Centers are locked (predefined colors)</span></li>
+              <li className="icon-text"><span>9️⃣</span><span>Each color appears exactly 9 times total</span></li>
+              <li className="icon-text"><span>⌨️</span><span>Keyboard: W, Y, R, O, G, B to select colors</span></li>
+              <li className="icon-text"><span>🧭</span><span>Use the orientation guide above</span></li>
+              <li className="icon-text"><span>👀</span><span>Watch the 3D preview update live!</span></li>
             </ul>
-          </div>
+          </CollapsibleSection>
         </div>
+      </div>
+
+      {/* Sticky CTA for mobile */}
+      <div className="lg:hidden sticky-cta-spacer"></div>
+      <div className="lg:hidden sticky-cta">
+        <button
+          onClick={handleComplete}
+          disabled={!isComplete || !validationResult?.isValid}
+          className={`retro-btn w-full py-3 font-bold text-base focus-ring ${
+            isComplete && validationResult?.isValid
+              ? 'retro-btn-primary-enhanced'
+              : 'retro-btn-secondary opacity-50 cursor-not-allowed'
+          }`}
+        >
+          <span className="icon-text justify-center">
+            <span className="icon-md">🎯</span>
+            <span>PROCEED TO 3D VIEW</span>
+          </span>
+        </button>
       </div>
 
       {/* 3D Cube Viewer - Live preview */}
