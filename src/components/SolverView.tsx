@@ -309,16 +309,6 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
     createTrackedTimeout(() => playNext(startStep), 100);
   }, [solution.length, handleReset, animationSpeed, isPlaying, isPaused, currentStep]);
 
-  const handlePause = useCallback(() => {
-    // Set refs immediately so the recursive playNext sees the change
-    isPausedRef.current = true;
-    isPlayingRef.current = false;
-    setIsPaused(true);
-    setIsPlaying(false);
-    setIsAnimating(false);
-    clearAllTimeouts();
-  }, []);
-
   // Stop playback completely - different from pause (fully resets playback state)
   const handleStop = useCallback(() => {
     // Clear ALL timeouts immediately - this is critical for instant stop
@@ -687,77 +677,77 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
               <button onClick={onBack} className="retro-title-btn">←</button>
             </div>
           </div>
-          <div className="p-4 bg-gray-300">
+          <div className="p-2 sm:p-4 bg-gray-300">
             {/* Progress */}
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-black text-sm">
-                Step {Math.min(currentStep + 1, solution.length)} of {solution.length}
+            <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+              <span className="text-black text-xs sm:text-sm">
+                Step {Math.min(currentStep + 1, solution.length)}/{solution.length}
               </span>
-              <span className="retro-panel px-3 py-1 text-black">
+              <span className="retro-panel px-2 sm:px-3 py-0.5 sm:py-1 text-black text-xs sm:text-sm">
                 {isComplete ? '✅ SOLVED!' : `${Math.round((currentStep / solution.length) * 100)}%`}
               </span>
             </div>
 
             {/* Progress bar - smooth animation */}
-            <div className="bg-gray-400 border-2 mb-4 rounded-sm overflow-hidden" style={{ borderColor: '#fff #808080 #808080 #fff' }}>
+            <div className="bg-gray-400 border-2 mb-3 sm:mb-4 rounded-sm overflow-hidden" style={{ borderColor: '#fff #808080 #808080 #fff' }}>
               <div 
-                className="bg-gradient-to-r from-blue-400 to-blue-500 h-4 progress-bar-smooth"
+                className="bg-gradient-to-r from-blue-400 to-blue-500 h-3 sm:h-4 progress-bar-smooth"
                 style={{ width: `${(currentStep / solution.length) * 100}%` }}
               />
             </div>
 
             {/* Current Move Display */}
             {!isComplete ? (
-              <div className="retro-panel p-4 mb-4">
+              <div className="retro-panel p-3 sm:p-4 mb-3 sm:mb-4">
                 <div className="text-center">
-                  <div className="text-6xl font-bold text-black mb-2">
+                  <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-black mb-1 sm:mb-2">
                     {currentMove?.notation}
                   </div>
-                  <div className="text-black text-lg mb-4">
+                  <div className="text-black text-sm sm:text-lg mb-2 sm:mb-4 line-clamp-2">
                     {currentMove?.description}
                   </div>
                 </div>
                 
                 {/* Visual instruction */}
-                <div className="retro-panel p-3 bg-yellow-50 text-sm text-black">
-                  <div className="font-bold mb-2">🔧 How to do this move on your cube:</div>
+                <div className="retro-panel p-2 sm:p-3 bg-yellow-50 text-xs sm:text-sm text-black">
+                  <div className="font-bold mb-1 sm:mb-2">🔧 How to do this move:</div>
                   <div>
                     {currentMove?.notation.includes("'") ? (
-                      <span>Rotate the <strong>{currentMove?.face}</strong> face <strong>COUNTER-CLOCKWISE</strong> (to the left) 90°</span>
+                      <span>Rotate <strong>{currentMove?.face}</strong> face <strong className="text-red-600">CCW</strong> 90°</span>
                     ) : currentMove?.notation.includes("2") ? (
-                      <span>Rotate the <strong>{currentMove?.face}</strong> face <strong>180°</strong> (half turn, either direction)</span>
+                      <span>Rotate <strong>{currentMove?.face}</strong> face <strong>180°</strong></span>
                     ) : (
-                      <span>Rotate the <strong>{currentMove?.face}</strong> face <strong>CLOCKWISE</strong> (to the right) 90°</span>
+                      <span>Rotate <strong>{currentMove?.face}</strong> face <strong className="text-green-600">CW</strong> 90°</span>
                     )}
                   </div>
-                  <div className="mt-2 text-xs text-gray-600">
-                    The highlighted layer on the 3D cube shows which face to turn. Watch how the cube changes after clicking Next!
+                  <div className="mt-1 sm:mt-2 text-xs text-gray-600 hidden sm:block">
+                    The highlighted layer on the 3D cube shows which face to turn.
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="retro-panel p-4 mb-4 text-center bg-green-100">
-                <div className="text-4xl mb-2">🎉</div>
-                <div className="text-xl font-bold text-black">
+              <div className="retro-panel p-3 sm:p-4 mb-3 sm:mb-4 text-center bg-green-100">
+                <div className="text-3xl sm:text-4xl mb-2">🎉</div>
+                <div className="text-lg sm:text-xl font-bold text-black">
                   Cube Solved!
                 </div>
-                <div className="text-black text-sm mt-2">
+                <div className="text-black text-xs sm:text-sm mt-2">
                   Completed in {solution.length} moves
                 </div>
               </div>
             )}
 
             {/* Navigation Controls */}
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-1.5 sm:gap-2 mb-2 sm:mb-3">
               <button
                 onClick={handlePrevStep}
                 disabled={currentStep === 0 || isAnimating || isPlaying}
                 aria-label="Previous step"
-                className="retro-btn flex-1 focus-ring"
+                className="retro-btn flex-1 focus-ring px-2 sm:px-3"
               >
                 <span className="icon-text">
                   <span>←</span>
-                  <span>Previous</span>
+                  <span className="hidden xs:inline">Prev</span>
                 </span>
               </button>
               <Tooltip text="Reset to beginning">
@@ -765,7 +755,7 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                   onClick={handleReset}
                   disabled={isPlaying}
                   aria-label="Reset"
-                  className="retro-btn focus-ring"
+                  className="retro-btn focus-ring px-2 sm:px-3"
                 >
                   ⏮
                 </button>
@@ -774,23 +764,23 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                 onClick={handleNextStep}
                 disabled={isComplete || isAnimating || isPlaying}
                 aria-label="Next step"
-                className="retro-btn flex-1 focus-ring"
+                className="retro-btn flex-1 focus-ring px-2 sm:px-3"
               >
                 <span className="icon-text">
-                  <span>{isAnimating ? '...' : 'Next'}</span>
+                  <span className="hidden xs:inline">{isAnimating ? '...' : 'Next'}</span>
                   <span>→</span>
                 </span>
               </button>
             </div>
 
-            {/* Playback Controls - Enhanced */}
-            <div className="retro-panel p-3 bg-gray-200">
-              <div className="flex items-center gap-2 flex-wrap">
+            {/* Playback Controls - Enhanced Responsive */}
+            <div className="retro-panel p-2 sm:p-3 bg-gray-200">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <button
                   onClick={handlePlayAll}
                   disabled={isComplete && !isPlaying}
                   aria-label={isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play all'}
-                  className={`retro-btn px-4 focus-ring transition-smooth ${
+                  className={`retro-btn px-2 sm:px-4 focus-ring transition-smooth ${
                     isPlaying && !isPaused 
                       ? 'bg-yellow-200 hover:bg-yellow-300' 
                       : 'retro-btn-success'
@@ -798,7 +788,7 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                 >
                   <span className="icon-text">
                     <span>{isPlaying && !isPaused ? '⏸' : '▶'}</span>
-                    <span>{isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play All'}</span>
+                    <span className="hidden xs:inline">{isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play All'}</span>
                   </span>
                 </button>
                 
@@ -806,26 +796,26 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                   <button
                     onClick={handleStop}
                     aria-label="Stop playback"
-                    className="retro-btn px-3 retro-btn-danger focus-ring"
+                    className="retro-btn px-2 sm:px-3 retro-btn-danger focus-ring"
                   >
                     <span className="icon-text">
                       <span>⏹</span>
-                      <span>Stop</span>
+                      <span className="hidden xs:inline">Stop</span>
                     </span>
                   </button>
                 )}
 
                 {/* Speed Control */}
-                <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-black text-xs font-bold">Speed:</span>
-                  <div className="flex gap-1">
+                <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
+                  <span className="text-black text-xs font-bold hidden sm:inline">Speed:</span>
+                  <div className="flex gap-0.5 sm:gap-1">
                     {([0.5, 1, 2] as const).map(speed => (
                       <button
                         key={speed}
                         onClick={() => handleSpeedChange(speed)}
                         aria-label={`Set speed to ${speed}x`}
                         aria-pressed={animationSpeed === speed}
-                        className={`retro-btn px-2 py-1 text-xs focus-ring transition-smooth ${
+                        className={`retro-btn px-1.5 sm:px-2 py-1 text-xs focus-ring transition-smooth min-w-[32px] sm:min-w-0 ${
                           animationSpeed === speed ? 'bg-blue-300 ring-2 ring-blue-500' : ''
                         }`}
                       >
@@ -840,13 +830,16 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
         </div>
 
         {/* Cube Views - 2D Net and 3D */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 w-full">
           {/* 2D Animated Net View */}
           <div className="retro-window w-full min-w-0">
             <div className="retro-title-bar">
-              <span>📐 2D Net View</span>
+              <span className="flex items-center gap-1 sm:gap-2">
+                <span className="hidden sm:inline">📐</span>
+                <span>2D Net View</span>
+              </span>
             </div>
-            <div className="p-3 sm:p-4 bg-gray-300">
+            <div className="p-2 sm:p-3 md:p-4 bg-gray-300">
               <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
                 <CubeNetUnfolding 
                   state={currentCubeState} 
@@ -868,28 +861,32 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
           </ThreeJSErrorBoundary>
         </div>
 
-        {/* Move List */}
-        <div className="retro-window">
-          <div className="retro-title-bar">
-            <span>📝 All Moves</span>
-          </div>
-          <div className="p-4 bg-gray-300 max-h-48 overflow-y-auto">
-            <div className="flex flex-wrap gap-2">
+        {/* Move List - Collapsible on mobile */}
+        <details className="retro-window group" open>
+          <summary className="retro-title-bar cursor-pointer list-none">
+            <span className="flex items-center gap-1 sm:gap-2">
+              <span className="hidden sm:inline">📝</span>
+              <span>All Moves ({solution.length})</span>
+            </span>
+            <span className="text-xs opacity-80">▼</span>
+          </summary>
+          <div className="p-2 sm:p-4 bg-gray-300 max-h-36 sm:max-h-48 overflow-y-auto">
+            <div className="flex flex-wrap gap-1 sm:gap-2">
               {solution.map((move, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentStep(idx)}
-                  className={`retro-btn px-3 py-2 text-sm ${
+                  className={`retro-btn px-1.5 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm min-w-[36px] ${
                     idx === currentStep ? 'ring-2 ring-yellow-400 bg-yellow-100' : ''
                   } ${completedSteps.has(idx) ? 'bg-green-100' : ''}`}
                 >
                   {move.notation}
-                  {completedSteps.has(idx) && ' ✓'}
+                  {completedSteps.has(idx) && <span className="hidden sm:inline"> ✓</span>}
                 </button>
               ))}
             </div>
           </div>
-        </div>
+        </details>
       </div>
     );
   }
@@ -915,13 +912,13 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
           </div>
           <div className="p-4 bg-gray-300">
             {/* Solution display */}
-            <div className="retro-panel p-4 mb-4">
-              <div className="text-black font-bold mb-2">Solution ({solution.length} moves):</div>
-              <div className="flex flex-wrap gap-2">
+            <div className="retro-panel p-2 sm:p-4 mb-3 sm:mb-4">
+              <div className="text-black font-bold mb-2 text-sm sm:text-base">Solution ({solution.length} moves):</div>
+              <div className="flex flex-wrap gap-1 sm:gap-2">
                 {solution.map((move, idx) => (
                   <span
                     key={idx}
-                    className={`px-2 py-1 rounded text-sm ${
+                    className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm ${
                       idx < currentStep 
                         ? 'bg-green-200 text-green-800' 
                         : idx === currentStep 
@@ -935,14 +932,14 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
               </div>
             </div>
 
-            {/* Controls - Enhanced */}
-            <div className="retro-panel p-3 bg-gray-200 mb-4">
-              <div className="flex items-center gap-2 flex-wrap mb-3">
+            {/* Controls - Enhanced Responsive */}
+            <div className="retro-panel p-2 sm:p-3 bg-gray-200 mb-3 sm:mb-4">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-2 sm:mb-3">
                 <button
                   onClick={handlePlayAll}
                   disabled={isComplete && !isPlaying}
                   aria-label={isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play all'}
-                  className={`retro-btn px-4 focus-ring transition-smooth ${
+                  className={`retro-btn px-2 sm:px-4 focus-ring transition-smooth flex-grow sm:flex-grow-0 ${
                     isPlaying && !isPaused 
                       ? 'bg-yellow-200 hover:bg-yellow-300' 
                       : 'retro-btn-success'
@@ -950,7 +947,7 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                 >
                   <span className="icon-text">
                     <span>{isPlaying && !isPaused ? '⏸' : '▶'}</span>
-                    <span>{isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play All'}</span>
+                    <span className="hidden xs:inline">{isPlaying && !isPaused ? 'Pause' : isPaused ? 'Resume' : 'Play All'}</span>
                   </span>
                 </button>
                 
@@ -958,11 +955,11 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                   <button
                     onClick={handleStop}
                     aria-label="Stop playback"
-                    className="retro-btn px-3 retro-btn-danger focus-ring"
+                    className="retro-btn px-2 sm:px-3 retro-btn-danger focus-ring"
                   >
                     <span className="icon-text">
                       <span>⏹</span>
-                      <span>Stop</span>
+                      <span className="hidden xs:inline">Stop</span>
                     </span>
                   </button>
                 )}
@@ -971,24 +968,24 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
                   onClick={handlePrevStep}
                   disabled={currentStep === 0 || isAnimating || isPlaying}
                   aria-label="Previous step"
-                  className="retro-btn focus-ring"
+                  className="retro-btn focus-ring px-2 sm:px-3"
                 >
-                  ◀ Prev
+                  <span className="hidden sm:inline">◀</span> Prev
                 </button>
                 <button
                   onClick={handleNextStep}
                   disabled={isComplete || isAnimating || isPlaying}
                   aria-label="Next step"
-                  className="retro-btn focus-ring"
+                  className="retro-btn focus-ring px-2 sm:px-3"
                 >
-                  Next ▶
+                  Next <span className="hidden sm:inline">▶</span>
                 </button>
                 <Tooltip text="Reset to beginning">
                   <button
                     onClick={handleReset}
                     disabled={isPlaying}
                     aria-label="Reset"
-                    className="retro-btn focus-ring"
+                    className="retro-btn focus-ring px-2 sm:px-3"
                   >
                     ⏮
                   </button>
@@ -1020,10 +1017,10 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
             </div>
 
             {isComplete && (
-              <div className="retro-panel p-3 bg-green-100 text-center success-pulse validation-success-animation">
+              <div className="retro-panel p-2 sm:p-3 bg-green-100 text-center success-pulse validation-success-animation">
                 <span className="icon-text justify-center">
                   <span className="icon-lg">🎉</span>
-                  <span className="text-black font-bold">Cube Solved!</span>
+                  <span className="text-black font-bold text-sm sm:text-base">Cube Solved!</span>
                 </span>
               </div>
             )}
@@ -1031,13 +1028,16 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
         </div>
 
         {/* Cube Views - 2D Net and 3D */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 w-full">
           {/* 2D Animated Net View */}
           <div className="retro-window w-full min-w-0">
             <div className="retro-title-bar">
-              <span>📐 2D Net View</span>
+              <span className="flex items-center gap-1 sm:gap-2">
+                <span className="hidden sm:inline">📐</span>
+                <span>2D Net View</span>
+              </span>
             </div>
-            <div className="p-3 sm:p-4 bg-gray-300">
+            <div className="p-2 sm:p-3 md:p-4 bg-gray-300">
               <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
                 <CubeNetUnfolding 
                   state={currentCubeState} 
@@ -1059,34 +1059,39 @@ export default function SolverView({ cubeState: initialCubeState, onBack }: Solv
           </ThreeJSErrorBoundary>
         </div>
 
-        {/* Move Notation Legend */}
-        <div className="retro-window">
-          <div className="retro-title-bar">
-            <span>📖 Move Notation Guide</span>
-          </div>
-          <div className="p-4 bg-gray-300">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-black">
-              <div className="retro-panel p-2">
-                <strong>R</strong> = Right clockwise
+        {/* Move Notation Legend - Collapsible on mobile */}
+        <details className="retro-window group">
+          <summary className="retro-title-bar cursor-pointer list-none">
+            <span className="flex items-center gap-1 sm:gap-2">
+              <span className="hidden sm:inline">📖</span>
+              <span>Move Notation Guide</span>
+            </span>
+            <span className="text-xs opacity-80 group-open:hidden">▼ Tap to expand</span>
+            <span className="text-xs opacity-80 hidden group-open:inline">▲ Tap to collapse</span>
+          </summary>
+          <div className="p-2 sm:p-4 bg-gray-300">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2 text-xs text-black">
+              <div className="retro-panel p-1.5 sm:p-2">
+                <strong>R</strong> = Right CW
               </div>
-              <div className="retro-panel p-2">
-                <strong>R'</strong> = Right counter-clockwise
+              <div className="retro-panel p-1.5 sm:p-2">
+                <strong>R'</strong> = Right CCW
               </div>
-              <div className="retro-panel p-2">
+              <div className="retro-panel p-1.5 sm:p-2">
                 <strong>R2</strong> = Right 180°
               </div>
-              <div className="retro-panel p-2">
-                <strong>U</strong> = Up clockwise
+              <div className="retro-panel p-1.5 sm:p-2">
+                <strong>U</strong> = Up CW
               </div>
-              <div className="retro-panel p-2">
-                <strong>F</strong> = Front clockwise
+              <div className="retro-panel p-1.5 sm:p-2">
+                <strong>F</strong> = Front CW
               </div>
-              <div className="retro-panel p-2">
-                <strong>L/D/B</strong> = Left/Down/Back
+              <div className="retro-panel p-1.5 sm:p-2">
+                <strong>L/D/B</strong> = Other faces
               </div>
             </div>
           </div>
-        </div>
+        </details>
       </div>
     );
   }

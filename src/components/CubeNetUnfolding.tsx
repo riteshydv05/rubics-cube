@@ -19,7 +19,7 @@ const DEFAULT_FACE: Record<FaceName, CubeColor[]> = {
   D: ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y'],
 };
 
-// Cell and face dimensions
+// Cell and face dimensions - made responsive via CSS
 const CELL_SIZE = 36;
 const CELL_GAP = 2;
 const FACE_SIZE = CELL_SIZE * 3 + CELL_GAP * 2;
@@ -359,29 +359,46 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true, animatingMov
           width: 100%;
           max-width: 100%;
           margin: 0 auto;
-          padding: clamp(12px, 3vw, 24px);
+          padding: clamp(8px, 2vw, 24px);
           background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
-          border-radius: 16px;
+          border-radius: 12px;
           box-shadow: 
             0 10px 40px rgba(0, 0, 0, 0.08),
             inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          overflow: hidden;
+        }
+        
+        @media (min-width: 480px) {
+          .cube-net-unfolding-container {
+            border-radius: 16px;
+            padding: clamp(12px, 3vw, 24px);
+          }
         }
 
         .cube-net-move-indicator {
           position: absolute;
-          top: 16px;
+          top: 8px;
           left: 50%;
           transform: translateX(-50%);
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
-          padding: 8px 24px;
-          border-radius: 20px;
+          padding: 6px 16px;
+          border-radius: 16px;
           font-family: 'SF Mono', Monaco, monospace;
-          font-size: 20px;
+          font-size: clamp(14px, 4vw, 20px);
           font-weight: bold;
           z-index: 20;
           animation: pulse-glow 0.35s ease-in-out;
           box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+          white-space: nowrap;
+        }
+        
+        @media (min-width: 480px) {
+          .cube-net-move-indicator {
+            top: 16px;
+            padding: 8px 24px;
+            border-radius: 20px;
+          }
         }
 
         @keyframes pulse-glow {
@@ -392,23 +409,32 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true, animatingMov
 
         .cube-net-scan-button {
           position: absolute;
-          top: 16px;
-          right: 16px;
+          top: 8px;
+          right: 8px;
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 12px 24px;
+          gap: 6px;
+          padding: 8px 16px;
           background: #1a1a2e;
           color: white;
           border: none;
-          border-radius: 30px;
+          border-radius: 24px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          font-size: 16px;
+          font-size: clamp(12px, 3vw, 16px);
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
           z-index: 10;
+        }
+        
+        @media (min-width: 480px) {
+          .cube-net-scan-button {
+            top: 16px;
+            right: 16px;
+            padding: 12px 24px;
+            border-radius: 30px;
+          }
         }
 
         .cube-net-scan-button:hover {
@@ -422,25 +448,35 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true, animatingMov
         }
 
         .cube-net-scan-icon {
-          font-size: 20px;
+          font-size: clamp(16px, 4vw, 20px);
         }
 
         .cube-net-replay-button {
           position: absolute;
-          top: 16px;
-          left: 16px;
-          width: 44px;
-          height: 44px;
+          top: 8px;
+          left: 8px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: rgba(0, 0, 0, 0.08);
           border: none;
           border-radius: 50%;
-          font-size: 20px;
+          font-size: 16px;
           cursor: pointer;
           transition: all 0.3s ease;
           z-index: 10;
+        }
+        
+        @media (min-width: 480px) {
+          .cube-net-replay-button {
+            top: 16px;
+            left: 16px;
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+          }
         }
 
         .cube-net-replay-button:hover {
@@ -451,26 +487,53 @@ function CubeNetUnfolding({ state, onScanClick, autoAnimate = true, animatingMov
         .cube-net-grid {
           display: flex;
           flex-direction: column;
-          gap: 4px;
-          margin-top: 50px;
+          gap: clamp(2px, 0.5vw, 4px);
+          margin-top: clamp(36px, 8vw, 50px);
           align-items: center;
+          transform-origin: center center;
         }
 
         .cube-net-row {
           display: flex;
-          gap: 4px;
+          gap: clamp(2px, 0.5vw, 4px);
         }
 
         .cube-net-face {
-          width: ${FACE_SIZE}px;
-          height: ${FACE_SIZE}px;
+          --face-size: clamp(80px, 22vw, ${FACE_SIZE}px);
+          width: var(--face-size);
+          height: var(--face-size);
           transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
           transform-style: preserve-3d;
         }
+        
+        @media (min-width: 480px) {
+          .cube-net-face {
+            --face-size: clamp(90px, 20vw, ${FACE_SIZE}px);
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .cube-net-face {
+            --face-size: ${FACE_SIZE}px;
+          }
+        }
 
         .cube-net-face-spacer {
-          width: ${FACE_SIZE}px;
-          height: ${FACE_SIZE}px;
+          --face-size: clamp(80px, 22vw, ${FACE_SIZE}px);
+          width: var(--face-size);
+          height: var(--face-size);
+        }
+        
+        @media (min-width: 480px) {
+          .cube-net-face-spacer {
+            --face-size: clamp(90px, 20vw, ${FACE_SIZE}px);
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .cube-net-face-spacer {
+            --face-size: ${FACE_SIZE}px;
+          }
         }
 
         .cube-net-cell {
@@ -516,11 +579,14 @@ const FaceComponent = memo(({ colors, faceName, animatingMove, animationProgress
   
   return (
     <div 
+      className="cube-net-face-grid"
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(3, ${CELL_SIZE}px)`,
-        gridTemplateRows: `repeat(3, ${CELL_SIZE}px)`,
-        gap: `${CELL_GAP}px`,
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateRows: 'repeat(3, 1fr)',
+        gap: 'clamp(1px, 0.4vw, 2px)',
+        width: '100%',
+        height: '100%',
         transform: isMainFace ? `rotate(${rotationDegree}deg)` : 'none',
         transition: 'none',
       }}
@@ -535,11 +601,12 @@ const FaceComponent = memo(({ colors, faceName, animatingMove, animationProgress
             key={index}
             className={`cube-net-cell ${isAnimating ? 'animating' : ''}`}
             style={{
-              width: CELL_SIZE,
-              height: CELL_SIZE,
+              width: '100%',
+              height: '100%',
+              aspectRatio: '1',
               backgroundColor: fillColor,
-              border: '2px solid #1a1a1a',
-              borderRadius: '3px',
+              border: 'clamp(1px, 0.4vw, 2px) solid #1a1a1a',
+              borderRadius: 'clamp(2px, 0.5vw, 3px)',
               position: 'relative',
               boxShadow: isAnimating 
                 ? `inset 0 0 0 1px rgba(255,255,255,0.2), 0 0 10px rgba(255,255,255,0.5)` 
@@ -554,7 +621,7 @@ const FaceComponent = memo(({ colors, faceName, animatingMove, animationProgress
                 top: 2,
                 left: 2,
                 right: 2,
-                height: 4,
+                height: 'clamp(2px, 10%, 4px)',
                 background: 'rgba(255,255,255,0.3)',
                 borderRadius: '2px',
               }}

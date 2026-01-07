@@ -531,27 +531,34 @@ export default function Cube3DViewer({
   return (
     <div className="retro-window">
       <div className="retro-title-bar">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🧊</span>
-          <span>3D Cube Viewer</span>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-lg sm:text-xl flex-shrink-0">🧊</span>
+          <span className="truncate">3D Cube Viewer</span>
           {animatingMove && (
-            <span className="ml-2 px-2 py-0.5 bg-yellow-400 text-black text-xs rounded animate-pulse">
+            <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 bg-yellow-400 text-black text-xs rounded animate-pulse flex-shrink-0">
               {animatingMove}
             </span>
           )}
         </div>
-        <div className="retro-title-buttons">
+        <div className="retro-title-buttons flex-shrink-0">
           <button 
             className="retro-title-btn"
             onClick={() => setIsRotating(!isRotating)}
             title={isRotating ? 'Stop rotation' : 'Start rotation'}
+            aria-label={isRotating ? 'Stop auto rotation' : 'Start auto rotation'}
           >
             {isRotating ? '⏸' : '▶'}
           </button>
         </div>
       </div>
       
-      <div className="bg-gray-800 relative w-full" style={{ height: 'clamp(300px, 50vw, 450px)' }}>
+      <div 
+        className="bg-gray-800 relative w-full" 
+        style={{ 
+          height: 'clamp(250px, 45vw, 450px)',
+          minHeight: '250px'
+        }}
+      >
         <Canvas
           camera={{ position: [4, 3, 6], fov: 45 }}
           gl={{ antialias: true, failIfMajorPerformanceCaveat: false }}
@@ -603,28 +610,29 @@ export default function Cube3DViewer({
         </Canvas>
         
         {/* Overlay controls */}
-        <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
-          <div className="retro-panel px-2 py-1 text-xs text-black">
+        <div className="absolute bottom-2 left-2 right-2 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
+          <div className="retro-panel px-2 py-1 text-xs text-black text-center sm:text-left">
             🖱️ Drag to rotate • Scroll to zoom
           </div>
           <button
             onClick={() => setIsRotating(!isRotating)}
-            className="retro-btn text-xs px-2 py-1"
+            className="retro-btn text-xs px-3 py-2 sm:px-2 sm:py-1 min-h-[36px] sm:min-h-0"
+            aria-label={isRotating ? 'Stop auto-rotation' : 'Start auto-rotation'}
           >
-            {isRotating ? '⏸ Stop' : '▶ Auto-rotate'}
+            {isRotating ? '⏸ AUTO-ROTATE' : '▶ AUTO-ROTATE'}
           </button>
         </div>
         
-        {/* Face orientation legend - colors match enhanced COLOR_MAP */}
-        <div className="absolute top-2 right-2 retro-panel p-1.5 text-xs">
-          <div className="text-black font-bold mb-1">Face Legend:</div>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-black">
-            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#00A550'}}></span>F</span>
-            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#0047AB'}}></span>B</span>
-            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#9B0000'}}></span>R</span>
-            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#FF8C00'}}></span>L</span>
-            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#FFFFFF'}}></span>U</span>
-            <span><span className="inline-block w-3 h-3 border-2 border-black mr-1" style={{backgroundColor: '#FFEB3B'}}></span>D</span>
+        {/* Face orientation legend - responsive */}
+        <div className="absolute top-2 right-2 retro-panel p-1 sm:p-1.5 text-xs">
+          <div className="text-black font-bold mb-1 text-center sm:text-left" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>Face Legend:</div>
+          <div className="grid grid-cols-2 gap-x-1 sm:gap-x-2 gap-y-0.5 text-black" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>
+            <span className="flex items-center"><span className="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 border sm:border-2 border-black mr-0.5 sm:mr-1 flex-shrink-0" style={{backgroundColor: '#00A550'}}></span>F</span>
+            <span className="flex items-center"><span className="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 border sm:border-2 border-black mr-0.5 sm:mr-1 flex-shrink-0" style={{backgroundColor: '#0047AB'}}></span>B</span>
+            <span className="flex items-center"><span className="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 border sm:border-2 border-black mr-0.5 sm:mr-1 flex-shrink-0" style={{backgroundColor: '#9B0000'}}></span>R</span>
+            <span className="flex items-center"><span className="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 border sm:border-2 border-black mr-0.5 sm:mr-1 flex-shrink-0" style={{backgroundColor: '#FF8C00'}}></span>L</span>
+            <span className="flex items-center"><span className="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 border sm:border-2 border-black mr-0.5 sm:mr-1 flex-shrink-0" style={{backgroundColor: '#FFFFFF'}}></span>U</span>
+            <span className="flex items-center"><span className="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 border sm:border-2 border-black mr-0.5 sm:mr-1 flex-shrink-0" style={{backgroundColor: '#FFEB3B'}}></span>D</span>
           </div>
         </div>
       </div>

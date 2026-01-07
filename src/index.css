@@ -2,6 +2,7 @@
 
 /* ============================================
    RETRO PIXEL ART UI - Windows 95 Style
+   Mobile-First Responsive Design
    ============================================ */
 
 :root {
@@ -31,12 +32,41 @@
   --btn-shadow: #808080;
   --btn-dark-shadow: #404040;
   
-  /* Standardized Button Sizes */
-  --btn-height: 40px;
-  --btn-padding-x: 16px;
-  --btn-padding-y: 8px;
-  --btn-font-size: 16px;
+  /* Mobile-First Standardized Button Sizes */
+  --btn-height: 44px;
+  --btn-padding-x: 12px;
+  --btn-padding-y: 10px;
+  --btn-font-size: 14px;
   --btn-border-radius: 0;
+  
+  /* Responsive spacing scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-lg: 1rem;
+  --space-xl: 1.5rem;
+  --space-2xl: 2rem;
+  
+  /* Container max widths */
+  --container-max: 100%;
+  
+  /* Base font sizes (mobile-first) */
+  --text-xs: clamp(0.75rem, 2vw, 0.875rem);
+  --text-sm: clamp(0.8125rem, 2.2vw, 0.9375rem);
+  --text-base: clamp(0.875rem, 2.5vw, 1rem);
+  --text-lg: clamp(1rem, 3vw, 1.125rem);
+  --text-xl: clamp(1.125rem, 3.5vw, 1.25rem);
+  --text-2xl: clamp(1.25rem, 4vw, 1.5rem);
+}
+
+/* Tablet+ button sizing */
+@media (min-width: 768px) {
+  :root {
+    --btn-height: 40px;
+    --btn-padding-x: 16px;
+    --btn-padding-y: 8px;
+    --btn-font-size: 16px;
+  }
 }
 
 @font-face {
@@ -54,22 +84,29 @@ html {
   overflow-x: hidden;
   width: 100%;
   height: 100%;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   font-family: 'VT323', 'Courier New', monospace;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
   height: 100%;
   color: var(--retro-white);
   image-rendering: pixelated;
-  font-size: 18px;
+  font-size: var(--text-base);
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;
   margin: 0;
   padding: 0;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Modal open state - lock body scroll */
@@ -78,66 +115,76 @@ body.modal-open {
   position: fixed;
   width: 100%;
   height: 100%;
+  touch-action: none;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   max-width: 100vw;
   overflow-x: hidden;
   box-sizing: border-box;
 }
 
 /* ============================================
-   APP CONTAINER - Full-width layout
+   APP CONTAINER - Mobile-First Fluid Layout
    ============================================ */
 
 .app-container {
   width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0.75rem;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: var(--space-sm);
+  padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
+}
+
+@media (min-width: 480px) {
+  .app-container {
+    padding: var(--space-md);
+  }
 }
 
 @media (min-width: 640px) {
   .app-container {
-    padding: 1rem 1.5rem;
+    padding: var(--space-lg) var(--space-xl);
   }
 }
 
 @media (min-width: 1024px) {
   .app-container {
-    padding: 1.25rem 2rem;
+    padding: var(--space-xl) var(--space-2xl);
   }
 }
 
 @media (min-width: 1440px) {
   .app-container {
-    padding: 1.5rem 2.5rem;
+    padding: var(--space-xl) calc(var(--space-2xl) + 1rem);
+    max-width: 1800px;
   }
 }
 
 @media (min-width: 1920px) {
   .app-container {
-    padding: 1.5rem 3rem;
+    padding: var(--space-2xl) calc(var(--space-2xl) + 2rem);
   }
 }
 
 /* ============================================
-   MAIN LAYOUT - Two column responsive
+   MAIN LAYOUT - Mobile-First Grid System
    ============================================ */
 
 .main-layout {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   width: 100%;
 }
 
 @media (min-width: 768px) {
   .main-layout {
-    gap: 1.25rem;
+    gap: var(--space-lg);
   }
 }
 
@@ -145,7 +192,7 @@ body.modal-open {
   .main-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: var(--space-xl);
     align-items: start;
   }
 }
@@ -153,21 +200,21 @@ body.modal-open {
 @media (min-width: 1280px) {
   .main-layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 2rem;
+    gap: var(--space-2xl);
   }
 }
 
 @media (min-width: 1536px) {
   .main-layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 2.5rem;
+    gap: calc(var(--space-2xl) + 0.5rem);
   }
 }
 
 .left-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   order: 2;
   min-width: 0;
   width: 100%;
@@ -176,28 +223,35 @@ body.modal-open {
 .right-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   order: 1;
   min-width: 0;
   width: 100%;
 }
 
+@media (min-width: 768px) {
+  .left-panel,
+  .right-panel {
+    gap: var(--space-lg);
+  }
+}
+
 @media (min-width: 1024px) {
   .left-panel {
     order: 1;
-    gap: 1.25rem;
+    gap: var(--space-lg);
   }
   
   .right-panel {
     order: 2;
-    gap: 1.25rem;
+    gap: var(--space-lg);
   }
 }
 
 @media (min-width: 1280px) {
   .left-panel,
   .right-panel {
-    gap: 1.5rem;
+    gap: var(--space-xl);
   }
 }
 
@@ -219,15 +273,15 @@ body.modal-open {
 }
 
 /* ============================================
-   RETRO WINDOW STYLES
+   RETRO WINDOW STYLES - Responsive
    ============================================ */
 
 .retro-window {
   background: var(--win-bg);
-  border: 4px solid;
+  border: 3px solid;
   border-color: var(--btn-highlight) var(--btn-dark-shadow) var(--btn-dark-shadow) var(--btn-highlight);
   box-shadow: 
-    6px 6px 0 rgba(0, 0, 0, 0.4),
+    4px 4px 0 rgba(0, 0, 0, 0.35),
     inset 2px 2px 0 var(--btn-face);
   width: 100%;
   max-width: 100%;
@@ -236,33 +290,70 @@ body.modal-open {
   transition: box-shadow 0.2s ease;
 }
 
+@media (min-width: 640px) {
+  .retro-window {
+    border-width: 4px;
+    box-shadow: 
+      6px 6px 0 rgba(0, 0, 0, 0.4),
+      inset 2px 2px 0 var(--btn-face);
+  }
+}
+
 .retro-window:hover {
   box-shadow: 
-    8px 8px 0 rgba(0, 0, 0, 0.5),
+    6px 6px 0 rgba(0, 0, 0, 0.45),
     inset 2px 2px 0 var(--btn-face);
+}
+
+@media (min-width: 640px) {
+  .retro-window:hover {
+    box-shadow: 
+      8px 8px 0 rgba(0, 0, 0, 0.5),
+      inset 2px 2px 0 var(--btn-face);
+  }
 }
 
 .retro-title-bar {
   background: linear-gradient(90deg, var(--win-title-start) 0%, var(--win-title-end) 100%);
-  padding: 4px 8px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-sm);
   color: white;
   font-weight: bold;
-  font-size: 20px;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  font-size: var(--text-sm);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
   user-select: none;
+  min-height: 36px;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 480px) {
+  .retro-title-bar {
+    font-size: var(--text-base);
+    padding: 5px 10px;
+  }
+}
+
+@media (min-width: 768px) {
+  .retro-title-bar {
+    font-size: var(--text-lg);
+    padding: 4px 8px;
+    min-height: 40px;
+    flex-wrap: nowrap;
+  }
 }
 
 .retro-title-buttons {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .retro-title-btn {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   background: var(--btn-face);
   border: 2px solid;
   border-color: var(--btn-highlight) var(--btn-dark-shadow) var(--btn-dark-shadow) var(--btn-highlight);
@@ -275,6 +366,15 @@ body.modal-open {
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .retro-title-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
 }
 
 .retro-title-btn:active {
@@ -282,7 +382,7 @@ body.modal-open {
 }
 
 /* ============================================
-   RETRO BUTTONS - Standardized
+   RETRO BUTTONS - Mobile-First Standardized
    ============================================ */
 
 .retro-btn {
@@ -291,20 +391,29 @@ body.modal-open {
   min-height: var(--btn-height);
   padding: var(--btn-padding-y) var(--btn-padding-x);
   background: var(--btn-face);
-  border: 4px solid;
+  border: 3px solid;
   border-color: var(--btn-highlight) var(--btn-dark-shadow) var(--btn-dark-shadow) var(--btn-highlight);
   color: black;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   transition: none;
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  gap: var(--space-xs);
   white-space: nowrap;
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) {
+  .retro-btn {
+    border-width: 4px;
+    letter-spacing: 1px;
+  }
 }
 
 .retro-btn:hover:not(:disabled) {
@@ -378,14 +487,14 @@ body.modal-open {
   font-size: 20px;
 }
 
-/* Tab Style Buttons */
+/* Tab Style Buttons - Mobile-First */
 .retro-tab {
   font-family: 'VT323', 'Courier New', monospace;
-  font-size: 14px;
+  font-size: var(--text-xs);
   min-height: var(--btn-height);
-  padding: var(--btn-padding-y) 16px;
+  padding: var(--btn-padding-y) 12px;
   background: linear-gradient(180deg, #ff9800 0%, #e65100 100%);
-  border: 3px solid;
+  border: 2px solid;
   border-color: #ffcc80 #bf360c #bf360c #ffcc80;
   color: white;
   cursor: pointer;
@@ -395,9 +504,26 @@ body.modal-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  gap: var(--space-xs);
   white-space: nowrap;
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 480px) {
+  .retro-tab {
+    font-size: var(--text-sm);
+    padding: var(--btn-padding-y) 14px;
+    border-width: 3px;
+  }
+}
+
+@media (min-width: 768px) {
+  .retro-tab {
+    font-size: 14px;
+    padding: var(--btn-padding-y) 16px;
+  }
 }
 
 .retro-tab:hover:not(:disabled) {
@@ -417,21 +543,35 @@ body.modal-open {
 }
 
 /* ============================================
-   RETRO PANELS
+   RETRO PANELS - Responsive
    ============================================ */
 
 .retro-panel {
   background: var(--win-bg);
-  border: 3px solid;
+  border: 2px solid;
   border-color: var(--btn-shadow) var(--btn-highlight) var(--btn-highlight) var(--btn-shadow);
-  padding: 16px;
+  padding: var(--space-md);
+}
+
+@media (min-width: 480px) {
+  .retro-panel {
+    border-width: 3px;
+    padding: var(--space-lg);
+  }
 }
 
 .retro-panel-raised {
   background: var(--win-bg);
-  border: 3px solid;
+  border: 2px solid;
   border-color: var(--btn-highlight) var(--btn-dark-shadow) var(--btn-dark-shadow) var(--btn-highlight);
-  padding: 16px;
+  padding: var(--space-md);
+}
+
+@media (min-width: 480px) {
+  .retro-panel-raised {
+    border-width: 3px;
+    padding: var(--space-lg);
+  }
 }
 
 /* ============================================
@@ -461,12 +601,12 @@ body.modal-open {
 }
 
 /* ============================================
-   FACE CELL FOR CUBE
+   FACE CELL FOR CUBE - Responsive Touch-friendly
    ============================================ */
 
 .face-cell {
   aspect-ratio: 1;
-  border: 4px solid;
+  border: 2px solid;
   border-color: var(--btn-highlight) var(--btn-dark-shadow) var(--btn-dark-shadow) var(--btn-highlight);
   display: flex;
   align-items: center;
@@ -474,6 +614,24 @@ body.modal-open {
   cursor: pointer;
   transition: none;
   image-rendering: pixelated;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+@media (min-width: 480px) {
+  .face-cell {
+    border-width: 3px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+
+@media (min-width: 768px) {
+  .face-cell {
+    border-width: 4px;
+    min-width: 36px;
+    min-height: 36px;
+  }
 }
 
 .face-cell:hover:not(:disabled) {
@@ -485,12 +643,18 @@ body.modal-open {
   border-color: var(--btn-dark-shadow) var(--btn-highlight) var(--btn-highlight) var(--btn-dark-shadow);
 }
 
-/* Color Dot */
+/* Color Dot - Responsive */
 .color-dot {
-  width: 2rem;
-  height: 2rem;
-  border: 3px solid;
+  width: clamp(1.5rem, 6vw, 2rem);
+  height: clamp(1.5rem, 6vw, 2rem);
+  border: 2px solid;
   border-color: var(--btn-highlight) var(--btn-dark-shadow) var(--btn-dark-shadow) var(--btn-highlight);
+}
+
+@media (min-width: 480px) {
+  .color-dot {
+    border-width: 3px;
+  }
 }
 
 /* ============================================
@@ -581,7 +745,7 @@ body.modal-open {
 }
 
 /* ============================================
-   MODAL STYLES
+   MODAL STYLES - Mobile-First
    ============================================ */
 
 .modal-overlay {
@@ -592,22 +756,39 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
-  padding-top: calc(1rem + env(safe-area-inset-top));
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  padding: var(--space-sm);
+  padding-top: calc(var(--space-sm) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   backdrop-filter: blur(4px);
 }
 
+@media (min-width: 480px) {
+  .modal-overlay {
+    padding: var(--space-lg);
+    padding-top: calc(var(--space-lg) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .modal-content {
   position: relative;
-  max-width: min(90vw, 600px);
-  max-height: 85vh;
+  max-width: min(95vw, 600px);
+  max-height: 90vh;
+  max-height: 90dvh;
   width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: modalFadeIn 0.2s ease-out;
+}
+
+@media (min-width: 480px) {
+  .modal-content {
+    max-width: min(90vw, 600px);
+    max-height: 85vh;
+    max-height: 85dvh;
+  }
 }
 
 @keyframes modalFadeIn {
@@ -710,35 +891,102 @@ body.modal-open {
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - Mobile-First Approach
    ============================================ */
 
-/* Small devices (phones, 640px and below) */
-@media (max-width: 640px) {
+/* Extra small devices (phones, below 480px) */
+@media (max-width: 479px) {
   :root {
-    --btn-height: 36px;
-    --btn-padding-x: 12px;
-    --btn-padding-y: 6px;
-    --btn-font-size: 14px;
+    --btn-height: 44px;
+    --btn-padding-x: 10px;
+    --btn-padding-y: 8px;
+    --btn-font-size: 13px;
   }
   
   body {
-    font-size: 14px;
+    font-size: var(--text-sm);
   }
 
   .retro-title-bar {
-    font-size: 14px;
-    padding: 4px 8px;
+    font-size: var(--text-xs);
+    padding: 4px 6px;
+    gap: var(--space-xs);
   }
 
   .retro-title-btn {
-    width: 18px;
-    height: 18px;
+    width: 26px;
+    height: 26px;
     font-size: 12px;
   }
 
   .retro-panel {
-    padding: 12px;
+    padding: var(--space-sm);
+  }
+
+  .retro-window {
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
+    border-width: 2px;
+  }
+
+  .face-cell {
+    border-width: 2px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  .color-dot {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-width: 2px;
+  }
+  
+  .retro-tab {
+    font-size: 11px;
+    padding: 6px 8px;
+    min-height: 40px;
+  }
+  
+  /* Better content spacing on extra small mobile */
+  .grid {
+    gap: var(--space-sm);
+  }
+  
+  /* Compact header spacing */
+  .retro-window .p-3 {
+    padding: var(--space-sm);
+  }
+  
+  .retro-window .p-4 {
+    padding: var(--space-md);
+  }
+}
+
+/* Small devices (phones, 480px - 640px) */
+@media (min-width: 480px) and (max-width: 639px) {
+  :root {
+    --btn-height: 44px;
+    --btn-padding-x: 12px;
+    --btn-padding-y: 8px;
+    --btn-font-size: 14px;
+  }
+  
+  body {
+    font-size: var(--text-base);
+  }
+
+  .retro-title-bar {
+    font-size: var(--text-sm);
+    padding: 5px 8px;
+  }
+
+  .retro-title-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .retro-panel {
+    padding: var(--space-md);
   }
 
   .retro-window {
@@ -747,7 +995,7 @@ body.modal-open {
   }
 
   .face-cell {
-    border-width: 2px;
+    border-width: 3px;
   }
 
   .color-dot {
@@ -759,49 +1007,35 @@ body.modal-open {
   .retro-tab {
     font-size: 12px;
     padding: 6px 10px;
-    min-height: 36px;
-  }
-  
-  /* Improve content spacing on mobile */
-  .grid {
-    gap: 0.75rem;
-  }
-  
-  /* Better header spacing */
-  .retro-window .p-3 {
-    padding: 0.875rem;
-  }
-  
-  .retro-window .p-4 {
-    padding: 1rem;
+    min-height: 42px;
   }
 }
 
-/* Medium devices (tablets, 641px - 1024px) */
-@media (min-width: 641px) and (max-width: 1024px) {
+/* Medium devices (tablets, 640px - 1024px) */
+@media (min-width: 640px) and (max-width: 1023px) {
   body {
-    font-size: 16px;
+    font-size: var(--text-base);
   }
 
   .retro-title-bar {
-    font-size: 16px;
+    font-size: var(--text-base);
     padding: 5px 10px;
   }
   
   .retro-panel {
-    padding: 14px;
+    padding: var(--space-lg);
   }
   
   /* Stack panels properly on tablet */
   .grid.lg\:grid-cols-2 {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: var(--space-lg);
   }
   
   /* Better button spacing */
   .flex.gap-2 {
-    gap: 0.625rem;
+    gap: var(--space-md);
   }
   
   /* Ensure panels take full width */
@@ -811,17 +1045,17 @@ body.modal-open {
 }
 
 /* Large tablets and small laptops */
-@media (min-width: 1024px) and (max-width: 1280px) {
+@media (min-width: 1024px) and (max-width: 1279px) {
   .main-layout {
-    gap: 1.5rem;
+    gap: var(--space-xl);
   }
   
   .retro-panel {
-    padding: 14px;
+    padding: var(--space-lg);
   }
 }
 
-/* Touch-friendly adjustments */
+/* Touch-friendly adjustments - improved */
 @media (hover: none) and (pointer: coarse) {
   .retro-btn,
   .retro-tab {
@@ -830,8 +1064,19 @@ body.modal-open {
   }
 
   .face-cell {
-    min-width: 30px;
-    min-height: 30px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  /* Increase tap target padding */
+  .retro-title-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  /* Prevent accidental taps */
+  .clickable-spacing {
+    padding: var(--space-sm);
   }
 }
 
@@ -953,7 +1198,7 @@ body.modal-open {
 }
 
 /* ============================================
-   COLLAPSIBLE SECTIONS (Mobile)
+   COLLAPSIBLE SECTIONS (Mobile) - Enhanced
    ============================================ */
 
 .collapsible-section {
@@ -966,10 +1211,18 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 10px 12px;
   background: linear-gradient(180deg, #e0e0e0 0%, #c0c0c0 100%);
   border-bottom: 2px solid var(--btn-shadow);
   transition: background 0.2s ease;
+  min-height: 44px;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .collapsible-header {
+    padding: 10px 14px;
+  }
 }
 
 .collapsible-header:hover {
@@ -984,6 +1237,7 @@ body.modal-open {
 .collapsible-icon {
   transition: transform 0.25s ease-out;
   font-size: 12px;
+  flex-shrink: 0;
 }
 
 .collapsible-icon.open {
@@ -1000,6 +1254,19 @@ body.modal-open {
 .collapsible-content.open {
   max-height: 2000px;
   opacity: 1;
+}
+
+/* Details/Summary native collapsible styling */
+details.retro-window > summary {
+  list-style: none;
+}
+
+details.retro-window > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.retro-window[open] > summary {
+  border-bottom: 2px solid var(--btn-shadow);
 }
 
 /* ============================================
@@ -1163,7 +1430,7 @@ body.modal-open {
 }
 
 /* ============================================
-   STICKY CTA FOR MOBILE
+   STICKY CTA FOR MOBILE - Enhanced
    ============================================ */
 
 @media (max-width: 640px) {
@@ -1172,10 +1439,10 @@ body.modal-open {
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     background: linear-gradient(180deg, rgba(192, 192, 192, 0.98) 0%, #c0c0c0 100%);
-    border-top: 4px solid;
+    border-top: 3px solid;
     border-color: var(--btn-highlight) var(--btn-dark-shadow) var(--btn-dark-shadow) var(--btn-highlight);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
     z-index: 50;
@@ -1183,14 +1450,19 @@ body.modal-open {
   }
 
   .sticky-cta-spacer {
-    height: calc(80px + env(safe-area-inset-bottom));
+    height: calc(70px + env(safe-area-inset-bottom, 0px));
   }
 }
 
-@media (max-width: 768px) {
+@media (min-width: 641px) and (max-width: 768px) {
   .sticky-cta {
-    padding: 10px 12px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top-width: 4px;
+  }
+  
+  .sticky-cta-spacer {
+    height: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -1546,10 +1818,257 @@ body.modal-open {
 /* Ultra-wide screen support */
 @media (min-width: 2560px) {
   .app-container {
-    padding: 2rem 4rem;
+    padding: var(--space-2xl) 4rem;
   }
   
   .main-layout {
     gap: 3rem;
+  }
+}
+
+/* ============================================
+   EXTRA SMALL BREAKPOINT UTILITIES
+   ============================================ */
+
+/* xs: 480px breakpoint utilities (not in Tailwind by default) */
+@media (min-width: 480px) {
+  .xs\:inline {
+    display: inline !important;
+  }
+  
+  .xs\:hidden {
+    display: none !important;
+  }
+  
+  .xs\:flex {
+    display: flex !important;
+  }
+  
+  .xs\:block {
+    display: block !important;
+  }
+}
+
+/* Hide on extra small screens */
+@media (max-width: 479px) {
+  .hidden.xs\:inline,
+  .hidden.xs\:flex,
+  .hidden.xs\:block {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   IMPROVED RESPONSIVE TYPOGRAPHY
+   ============================================ */
+
+/* Responsive heading sizes */
+h1, .text-3xl, .text-4xl {
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+  line-height: 1.2;
+}
+
+h2, .text-2xl {
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  line-height: 1.25;
+}
+
+h3, .text-xl {
+  font-size: clamp(1.125rem, 3.5vw, 1.5rem);
+  line-height: 1.3;
+}
+
+/* Prevent text overflow */
+.text-wrap-balance {
+  text-wrap: balance;
+}
+
+.text-wrap-pretty {
+  text-wrap: pretty;
+}
+
+/* Truncate with ellipsis */
+.truncate-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Multi-line truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ============================================
+   IMPROVED FLEX & GRID UTILITIES
+   ============================================ */
+
+/* Flex grow/shrink utilities */
+.flex-grow-1 {
+  flex-grow: 1;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+/* Min-width utilities for flex children */
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Better responsive flex wrap */
+.flex-wrap-responsive {
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 640px) {
+  .flex-wrap-responsive {
+    gap: var(--space-md);
+  }
+}
+
+/* Grid auto-fit for responsive columns */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .grid-auto-fit {
+    gap: var(--space-lg);
+  }
+}
+
+/* ============================================
+   SCROLL BEHAVIOR IMPROVEMENTS
+   ============================================ */
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Better overflow handling */
+.overflow-x-auto {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   SAFE AREA INSET UTILITIES
+   ============================================ */
+
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-inset-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.safe-area-inset-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.safe-area-inset-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.safe-area-inset-y {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================
+   ASPECT RATIO UTILITIES
+   ============================================ */
+
+.aspect-square {
+  aspect-ratio: 1;
+}
+
+.aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-4-3 {
+  aspect-ratio: 4 / 3;
+}
+
+/* ============================================
+   IMPROVED INTERACTION STATES
+   ============================================ */
+
+/* Remove tap highlight on mobile */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text selection on interactive elements */
+.select-none {
+  user-select: none;
+}
+
+/* Prevent double-tap zoom on interactive elements */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .retro-window {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  
+  body {
+    background: white;
+    color: black;
   }
 }
