@@ -3,7 +3,11 @@
  * Handles all communication with the backend auth endpoints
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || (
+  import.meta.env.PROD 
+    ? 'https://rubics-cube-three.vercel.app/api' 
+    : 'http://localhost:5000/api'
+);
 
 // Token storage keys
 const TOKEN_KEY = 'rubik_auth_token';
