@@ -110,7 +110,7 @@ RubikSight is a web-based Rubik's Cube scanner and solver application that uses 
 
 ---
 
-## 🚀 Deployment Checklist
+## 🚀 Deployment Checklist.  
 
 - [ ] Environment variables configured
 - [ ] Build optimization enabled
