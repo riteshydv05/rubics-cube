@@ -242,10 +242,13 @@ export async function checkHealth(): Promise<{ connected: boolean; mongodb: bool
       message: data.mongodb === 'connected' ? 'Connected' : '⚠️ MongoDB not connected (auth features limited)'
     };
   } catch (error) {
+    const isProduction = import.meta.env.PROD;
     return {
       connected: false,
       mongodb: false,
-      message: '❌ Backend server is not running. Start it with: cd server && node server.js'
+      message: isProduction 
+        ? '❌ Backend server is not running. Start it with: cd server && node server.js'
+        : '❌ Backend server is not running. Start it with: cd server && node server.js'
     };
   }
 }

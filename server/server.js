@@ -62,7 +62,7 @@ app.use(hpp());
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://rubics-cube-94u1.vercel.app',
+  'https://rubics-cube-7a23.vercel.app',
   'https://rubics-cube-three.vercel.app'
 ];
 
@@ -209,4 +209,32 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-startServer();
+// For Vercel serverless deployment
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) return;
+  
+  try {
+    const mongoOptions = {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    };
+    await mongoose.connect(process.env.MONGODB_URI, mongoOptions);
+    isConnected = true;
+    console.log('✅ Connected to MongoDB');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error.message);
+  }
+};
+
+// Connect to DB on cold start for serverless
+connectDB();
+
+// Only start the server if not in Vercel serverless environment
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
+
+// Export for Vercel serverless functions
+export default app;
